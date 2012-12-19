@@ -16,6 +16,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/sysinfo.h>
+#include <errno.h>
 
 #include <sys/types.h>
 #include <dirent.h>
@@ -423,6 +424,7 @@ int getwireless_essid(int skfd, char essid[]) {
     wrq.u.essid.length = IW_ESSID_MAX_SIZE + 1;
     wrq.u.essid.flags = 0;
     if(iw_get_ext(skfd, "wlan0", SIOCGIWESSID, &wrq) < 0) {
+        perror("iw_get_ex");
         return 1;
     }
 
@@ -728,7 +730,7 @@ void appendNetInfo(char * status, float speed, int up, int end) {
 
 int main(void) {
     int freq0, freq1, freq2, freq3;
-    char status[200] = "";
+    char status[280] = "";
 
     char datetime[30] = "";
 
@@ -740,6 +742,8 @@ int main(void) {
 
     char tmp[100] = "";
     char tmp1[100] = "";
+    char tmpWired[100] = "";
+    char tmpWifi[100] = "";
 
     char essid[IW_ESSID_MAX_SIZE + 1];
     float wifi_qual;
@@ -808,29 +812,31 @@ int main(void) {
 
         netspeed = getnetspeed(netspeed, 1);
 
-        tmp[0] = '\0';
+        tmpWired[0] = '\0';
         if (getwired()) {
             /*
                if (netspeed.wiredDown || netspeed.wiredUp) {
-               appendStatuss(status, WIRED, 0, 1, 0, 0);
+               appendStatuss(status, WIRED, COLOR_NORMAL, 1, 0, 0);
                if (netspeed.wiredDown)
                appendNetInfo(status, netspeed.wiredDown, 0, !netspeed.wiredUp); // Only show end if upload isn't there
                if (netspeed.wiredUp)
                appendNetInfo(status, netspeed.wiredUp, 1, 1);
                } else {
-               appendStatuss(status, WIRED, 0, 1, 1, 0);
+               appendStatuss(status, WIRED, COLOR_NORMAL, 1, 1, 0);
                }
                */
-            appendStatuss(status, WIRED, 0, 1, 0, 0);
-            appendNetInfo(status, netspeed.wiredDown, 0, 0);
-            if (isbonded()) {
-                appendNetInfo(status, netspeed.wiredUp, 1, 0 );
-            } else {
-                appendNetInfo(status, netspeed.wiredUp, 1, 1 );
-            }
+            //appendStatuss(tmpWired, WIRED, COLOR_NORMAL, 1, 0, 0);
+            appendStatuss(tmpWired, WIRED, COLOR_NORMAL, 0, 0, 0);
+            appendNetInfo(tmpWired, netspeed.wiredDown, 0, 0);
+//            if (isbonded()) {
+//                appendNetInfo(tmpWired, netspeed.wiredUp, 1, 0 );
+//            } else {
+                appendNetInfo(tmpWired, netspeed.wiredUp, 1, 0 );
+//            }
         }
 
         tmp[0] = '\0';
+        tmpWifi[0] = '\0';
         if (!getwireless_essid(wifi_skfd, essid) && strlen(essid)) {
             wifi_qual = getwireless_strength(wifi_skfd);
             if (wifi_qual <= 0.33) {
@@ -858,28 +864,47 @@ int main(void) {
                appendStatuss(status, tmp, 0, 1, 1, 0);
                }
                */
-            if (isbonded()) {
-                appendStatuss(status, tmp, 0, !getwired(), 0, getwired());
-            } else {
-                appendStatuss(status, tmp, 0, 1, 0, 0);
-            }
-            appendNetInfo(status, netspeed.wirelessDown, 0, 0);
-            appendNetInfo(status, netspeed.wirelessUp, 1, 1);
+            //if (isbonded()) {
+            //    appendStatuss(tmpWifi, tmp, 0, !getwired(), 0, getwired());
+            //} else {
+                //appendStatuss(tmpWifi, tmp, 0, 1, 0, 0);
+            //}
+            appendStatuss(tmpWifi, tmp, COLOR_NORMAL, 0, 0, 0);
+            appendNetInfo(tmpWifi, netspeed.wirelessDown, 0, 0);
+            appendNetInfo(tmpWifi, netspeed.wirelessUp, 1, 0);
         }
+        //printf("skfd: %d\n", wifi_skfd);
         //printf("%s\n", essid);
+        if (isbonded()) {
+            if (strlen(tmpWired) && strlen(tmpWifi)) {
+                appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 0, 0);
+                appendStatuss(status, tmpWifi,  COLOR_NORMAL, 0, 1, 1);
+            } else if (strlen(tmpWired)) {
+                appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 1, 0);
+            } else if (strlen(tmpWifi)) {
+                appendStatuss(status, tmpWifi, COLOR_NORMAL, 1, 1, 0);
+            }
+        } else {
+            if (strlen(tmpWired)) {
+                appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 1, 0);
+            }
+            if (strlen(tmpWifi)) {
+                appendStatuss(status, tmpWifi, COLOR_NORMAL, 1, 1, 0);
+            }
+        }
 
         getdatetime(datetime, 30);
 
         battinfo = getbattery();
 
-        appendStatuss(status, _volstr, 0, 1, 1, 0);
+        appendStatuss(status, _volstr, COLOR_NORMAL, 1, 1, 0);
 
         if (pidof("xautolock") == -1) {
             // xautolock NOT running
-            appendStatuss(status, XAUTOLOCK, 0, 1, 1, 0);
+            appendStatuss(status, XAUTOLOCK, COLOR_NORMAL, 1, 1, 0);
         }
 
-        appendStatusi(status, getram(), 0, 7886, RAM, "M", 1, 1, 0);
+        appendStatusi(status, getram(), COLOR_NORMAL, 7886, RAM, "M", 1, 1, 0);
 
         tmp[0] = '\0';
         if (battinfo.status == BattCharging) {
@@ -914,6 +939,7 @@ int main(void) {
         appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
 
         appendStatuss(status, datetime, 0, 1, 1, 0);
+
 
         setstatus(status);
 
