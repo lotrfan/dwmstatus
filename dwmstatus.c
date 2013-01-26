@@ -4,6 +4,8 @@
  ** gcc -Wall -pedantic -std=c99 -lX11 status.c
  */
 
+// TODO: switch to using *n functions for strings (that take the number of char's as arg)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
