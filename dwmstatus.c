@@ -100,13 +100,13 @@ struct io_t {
     int balance;
     int mute;
 
-    struct ops_t {
-        pa_operation *(*mute)(pa_context *, uint32_t, int, pa_context_success_cb_t, void *);
-        pa_operation *(*setvol)(pa_context *, uint32_t, const pa_cvolume *, pa_context_success_cb_t, void *);
-        pa_operation *(*setdefault)(pa_context *, const char *, pa_context_success_cb_t, void *);
-        pa_operation *(*move)(pa_context *, uint32_t, uint32_t, pa_context_success_cb_t, void *);
-        pa_operation *(*kill)(pa_context *, uint32_t, pa_context_success_cb_t, void *);
-    } op;
+    //struct ops_t {
+    //    pa_operation *(*mute)(pa_context *, uint32_t, int, pa_context_success_cb_t, void *);
+    //    pa_operation *(*setvol)(pa_context *, uint32_t, const pa_cvolume *, pa_context_success_cb_t, void *);
+    //    pa_operation *(*setdefault)(pa_context *, const char *, pa_context_success_cb_t, void *);
+    //    pa_operation *(*move)(pa_context *, uint32_t, uint32_t, pa_context_success_cb_t, void *);
+    //    pa_operation *(*kill)(pa_context *, uint32_t, pa_context_success_cb_t, void *);
+    //} op;
 
     struct io_t *next;
     struct io_t *prev;
@@ -122,7 +122,7 @@ struct pulseaudio_t {
     pa_mainloop *mainloop;
 
     char *default_sink;
-    char *default_source;
+    //char *default_source;
 };
 
 static void io_list_add(struct io_t **list, struct io_t *node)
@@ -150,39 +150,39 @@ static void populate_levels(struct io_t *node)
 
 #define IO_NEW(io, info, pp) \
     io = calloc(1, sizeof(struct io_t)); \
-io->idx = info->index; \
-io->mute = info->mute; \
-io->name = strdup(info->name); \
-io->pp_name = pp; \
-memcpy(&io->volume, &info->volume, sizeof(pa_cvolume)); \
-memcpy(&io->channels, &info->channel_map, sizeof(pa_channel_map)); \
-populate_levels(io);
+    io->idx = info->index; \
+    io->mute = info->mute; \
+    io->name = strdup(info->name); \
+    io->pp_name = pp; \
+    memcpy(&io->volume, &info->volume, sizeof(pa_cvolume)); \
+    memcpy(&io->channels, &info->channel_map, sizeof(pa_channel_map)); \
+    populate_levels(io);
 
 static struct io_t *sink_new(const pa_sink_info *info)
 {
     struct io_t *sink;
 
     IO_NEW(sink, info, "sink");
-    sink->desc = strdup(info->description);
-    sink->op.mute = pa_context_set_sink_mute_by_index;
-    sink->op.setvol = pa_context_set_sink_volume_by_index;
-    sink->op.setdefault = pa_context_set_default_sink;
+    //sink->desc = strdup(info->description);
+    //sink->op.mute = pa_context_set_sink_mute_by_index;
+    //sink->op.setvol = pa_context_set_sink_volume_by_index;
+    //sink->op.setdefault = pa_context_set_default_sink;
 
     return sink;
 }
 
-static struct io_t *source_new(const pa_source_info *info)
-{
-    struct io_t *source;
-
-    IO_NEW(source, info, "source");
-    source->desc = strdup(info->description);
-    source->op.mute = pa_context_set_source_mute_by_index;
-    source->op.setvol = pa_context_set_source_volume_by_index;
-    source->op.setdefault = pa_context_set_default_source;
-
-    return source;
-}
+//static struct io_t *source_new(const pa_source_info *info)
+//{
+//    struct io_t *source;
+//
+//    IO_NEW(source, info, "source");
+//    source->desc = strdup(info->description);
+//    source->op.mute = pa_context_set_source_mute_by_index;
+//    source->op.setvol = pa_context_set_source_volume_by_index;
+//    source->op.setdefault = pa_context_set_default_source;
+//
+//    return source;
+//}
 
 static void sink_add_cb(pa_context UNUSED *c, const pa_sink_info *i, int eol,
         void *raw)
@@ -195,21 +195,21 @@ static void sink_add_cb(pa_context UNUSED *c, const pa_sink_info *i, int eol,
     io_list_add(pony->list, sink_new(i));
 }
 
-static void source_add_cb(pa_context UNUSED *c, const pa_source_info *i, int eol, void *raw)
-{
-    struct cb_data_t *pony = raw;
-    if (eol)
-        return;
-    if (pony->glob && strstr(i->name, pony->glob) == NULL)
-        return;
-    io_list_add(pony->list, source_new(i));
-}
+//static void source_add_cb(pa_context UNUSED *c, const pa_source_info *i, int eol, void *raw)
+//{
+//    struct cb_data_t *pony = raw;
+//    if (eol)
+//        return;
+//    if (pony->glob && strstr(i->name, pony->glob) == NULL)
+//        return;
+//    io_list_add(pony->list, source_new(i));
+//}
 
 static void server_info_cb(pa_context UNUSED *c, const pa_server_info *i, void *raw)
 {
     struct pulseaudio_t *pulse = raw;
     pulse->default_sink = strdup(i->default_sink_name);
-    pulse->default_source = strdup(i->default_source_name);
+    //pulse->default_source = strdup(i->default_source_name);
 }
 
 static void connect_state_cb(pa_context *cxt, void *raw)
@@ -238,17 +238,17 @@ static int get_default_sink(struct pulseaudio_t *pulse, struct io_t **list)
     return 0;
 }
 
-static int get_default_source(struct pulseaudio_t *pulse, struct io_t **list)
-{
-    pa_operation *op;
-    struct cb_data_t pony = { .list = list };
-
-    op = pa_context_get_source_info_by_name(pulse->cxt, pulse->default_source, source_add_cb, &pony);
-
-    pulse_async_wait(pulse, op);
-    pa_operation_unref(op);
-    return 0;
-}
+//static int get_default_source(struct pulseaudio_t *pulse, struct io_t **list)
+//{
+//    pa_operation *op;
+//    struct cb_data_t pony = { .list = list };
+//
+//    op = pa_context_get_source_info_by_name(pulse->cxt, pulse->default_source, source_add_cb, &pony);
+//
+//    pulse_async_wait(pulse, op);
+//    pa_operation_unref(op);
+//    return 0;
+//}
 
 static int pulse_init(struct pulseaudio_t *pulse)
 {
@@ -258,7 +258,7 @@ static int pulse_init(struct pulseaudio_t *pulse)
     pulse->mainloop = pa_mainloop_new();
     pulse->cxt = pa_context_new(pa_mainloop_get_api(pulse->mainloop), "bestpony");
     pulse->default_sink = NULL;
-    pulse->default_source = NULL;
+    //pulse->default_source = NULL;
 
     pa_context_set_state_callback(pulse->cxt, connect_state_cb, &state);
     pa_context_connect(pulse->cxt, NULL, PA_CONTEXT_NOFLAGS, NULL);
@@ -282,7 +282,7 @@ static void pulse_deinit(struct pulseaudio_t *pulse)
     pa_context_disconnect(pulse->cxt);
     pa_mainloop_free(pulse->mainloop);
     free(pulse->default_sink);
-    free(pulse->default_source);
+    //free(pulse->default_source);
 }
 
 // END PULSE
@@ -791,12 +791,13 @@ int main(void) {
         if (pulseready) {
             devices = NULL;
             get_default_sink(&pulse, &devices);
-            get_default_source(&pulse, &devices);
+            //get_default_source(&pulse, &devices);
         }
 
 
         if (pulseready) {
             vol = (devices->mute ? -1 : devices->volume_percent);
+            printf("Volume: %d\n", vol);
             if (vol == -1) {
                 sprintf(_volstr, VOL_MUTE);
             } else {
