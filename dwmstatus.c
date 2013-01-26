@@ -243,31 +243,19 @@ pid_t pidof(const char* pname) {
             // Ignore kernel threads
             continue;
         }
-        //rintf("Looking at pid %ld\n", lpid);
 
         /* try to open the cmdline file */
         snprintf(buf, sizeof(buf), "/proc/%ld/status", lpid);
         FILE* fp = fopen(buf, "r");
         
         if (fp) {
-            //if (fscanf(fp, "%*d (%s) ", buf)) {
             if (fscanf(fp, "Name: %s ", buf)) {
-                //printf("\tName: %s\n", buf);
                 if (strcmp(buf, pname) == 0) {
                     fclose(fp);
                     closedir(dir);
                     return (pid_t)lpid;
                 }
             }
-            //if (fgets(buf, sizeof(buf), fp) != NULL) {
-            //    /* check the first token in the file, the program name */
-            //    char* first = strtok(buf, " ");
-            //    if (!strcmp(first, name)) {
-            //        fclose(fp);
-            //        closedir(dir);
-            //        return (pid_t)lpid;
-            //    }
-            //}
             fclose(fp);
         }
         
@@ -333,16 +321,6 @@ int getwired() {
     readfilei("/sys/class/net/eth0/carrier", &isup);
     return isup;
 }
-
-int iswired() {
-    FILE *fd;
-    fd = fopen("/sys/class/net/wth0/carrier", "r");
-    if(fd == NULL) {
-        return 0;
-    }
-    fclose(fd);
-    return 1;
-}
 int iswifi() {
     FILE *fd;
     fd = fopen("/sys/class/net/wlan0/carrier", "r");
@@ -362,6 +340,9 @@ int isbonded() {
     return 1;
 }
 
+/*
+ * Returns in MHz
+ */
 float getfreqf(int cpu) {
     float freq;
 
@@ -385,6 +366,9 @@ float getfreqf(int cpu) {
 
     return freq;;
 }
+/*
+ * Returns in Hz
+ */
 int getfreqi(int cpu) {
     int freq;
 
@@ -412,10 +396,6 @@ void getdatetime(char buf[], int len) {
     time_t result;
     struct tm *resulttm;
 
-    //	if((buf = malloc(sizeof(char)*65)) == NULL) {
-    //		fprintf(stderr, "Cannot allocate memory for buf.\n");
-    //		exit(1);
-    //	}
     result = time(NULL);
     resulttm = localtime(&result);
     if(resulttm == NULL) {
@@ -423,11 +403,8 @@ void getdatetime(char buf[], int len) {
         exit(1);
     }
     if(!strftime(buf, len-1, "%b %d" _BSEP "%H:%M:%S", resulttm)) {
-        //fprintf(stderr, "strftime is 0.\n");
-        //	exit(1);
+        fprintf(stderr, "strftime is 0.\n");
     }
-
-    //	return buf;
 }
 
 
@@ -435,9 +412,6 @@ struct BatteryInfo getbattery() {
     struct BatteryInfo info;
     int charge_now, charge_full, current;
     char status[30];
-    //char let;
-    //int seconds, minutes, hours;
-    //int percent;
 
     readfilei("/sys/class/power_supply/BAT0/charge_now", &charge_now);
     readfilei("/sys/class/power_supply/BAT0/charge_full", &charge_full);
@@ -459,7 +433,7 @@ struct BatteryInfo getbattery() {
         info.seconds = 0;
         return info;
     } else {
-        printf("Unknown battery status: %s\n", status);
+        fprintf(stderr,"Unknown battery status: %s\n", status);
         // Not sure what's happening
         return info;
     }
@@ -467,18 +441,14 @@ struct BatteryInfo getbattery() {
 
     info.percent = ((float)charge_now) / ((float)charge_full) * (float)100;
 
+    // Assign hours and minutes, and decrement seconds at the same time
     info.seconds -= (info.hours = info.seconds / 3600) * 3600; // integer division
     info.seconds -= (info.minutes = info.seconds / 60) * 60; // integer division
 
     return info;
-    //    sprintf(buf, "%c %d%% %02d:%02d:%02d", let, percent, hours, minutes, seconds);
 }
 
 int getram() {
-//     struct sysinfo info;
-//     sysinfo(&info);
-//     return (info.totalram - info.freeram - info.bufferram - info.sharedram) / info.mem_unit / 1024 / 1024;
-
     FILE *fd;
     long int tot, free, buf, cache;
     // TODO: Only open this once...
@@ -490,10 +460,6 @@ int getram() {
     fscanf(fd, "MemTotal: %li kB MemFree: %li kB Buffers: %li kB Cached: %li kB", &tot, &free, &buf, &cache);
     fclose(fd);
     return (tot - free - buf - cache) / 1024;
-//    MemTotal:        8075688 kB
-//    MemFree:          643704 kB
-//    Buffers:         1213104 kB
-//    Cached:          4173788 kB
 }
 
 struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
@@ -650,17 +616,11 @@ int main(void) {
     int vol = -1;
     char _volstr[12] = "";
 
-    // It makes sense to do this here, so we don't have to open pulse every time
-    /* initialize connection */
+    /* initialize pulse */
     if (pulse_init(&pulse) == 0)
         pulseready = 1;
 
     wifi_skfd = wireless_init();
-    //
-    //    if (pulseready) {
-    //        get_default_sink(&pulse, &devices);
-    //        get_default_source(&pulse, &devices);
-    //    }
 
 
     // TODO: Screenlocking, Touchpad
@@ -694,25 +654,9 @@ int main(void) {
 
         tmpWired[0] = '\0';
         if (getwired()) {
-            /*
-               if (netspeed.wiredDown || netspeed.wiredUp) {
-               appendStatuss(status, WIRED, COLOR_NORMAL, 1, 0, 0);
-               if (netspeed.wiredDown)
-               appendNetInfo(status, netspeed.wiredDown, 0, !netspeed.wiredUp); // Only show end if upload isn't there
-               if (netspeed.wiredUp)
-               appendNetInfo(status, netspeed.wiredUp, 1, 1);
-               } else {
-               appendStatuss(status, WIRED, COLOR_NORMAL, 1, 1, 0);
-               }
-               */
-            //appendStatuss(tmpWired, WIRED, COLOR_NORMAL, 1, 0, 0);
             appendStatuss(tmpWired, WIRED, COLOR_NORMAL, 0, 0, 0);
             appendNetInfo(tmpWired, netspeed.wiredDown, 0, 0);
-//            if (isbonded()) {
-//                appendNetInfo(tmpWired, netspeed.wiredUp, 1, 0 );
-//            } else {
-                appendNetInfo(tmpWired, netspeed.wiredUp, 1, 0 );
-//            }
+            appendNetInfo(tmpWired, netspeed.wiredUp, 1, 0 );
         }
 
         tmp[0] = '\0';
@@ -732,43 +676,29 @@ int main(void) {
                 strcat(tmp, WIFI_100 " ");
                 strcat(tmp, essid);
             }
-
-            /*
-               if (netspeed.wirelessDown || netspeed.wirelessUp) {
-               appendStatuss(status, tmp, 0, 1, 0, 0);
-               if (netspeed.wirelessDown)
-               appendNetInfo(status, netspeed.wirelessDown, 0, !netspeed.wirelessUp); // Only show end if upload isn't there
-               if (netspeed.wirelessUp)
-               appendNetInfo(status, netspeed.wirelessUp, 1, 1);
-               } else {
-               appendStatuss(status, tmp, 0, 1, 1, 0);
-               }
-               */
-            //if (isbonded()) {
-            //    appendStatuss(tmpWifi, tmp, 0, !getwired(), 0, getwired());
-            //} else {
-                //appendStatuss(tmpWifi, tmp, 0, 1, 0, 0);
-            //}
             appendStatuss(tmpWifi, tmp, COLOR_NORMAL, 0, 0, 0);
             appendNetInfo(tmpWifi, netspeed.wirelessDown, 0, 0);
             appendNetInfo(tmpWifi, netspeed.wirelessUp, 1, 0);
         }
-        //printf("skfd: %d\n", wifi_skfd);
-        //printf("%s\n", essid);
+        // Now tmpWired and tmpWifi both have their respective info
+        // Choose how to display them:
+        //  * if a bond interface is detected, display together using a splitter
+        //  * if bond is not active, then display then separate
+        // In either case, only display what's active
         if (isbonded()) {
-            if (strlen(tmpWired) && strlen(tmpWifi)) {
+            if (tmpWired[0] && tmpWifi[0]) {
                 appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 0, 0);
                 appendStatuss(status, tmpWifi,  COLOR_NORMAL, 0, 1, 1);
-            } else if (strlen(tmpWired)) {
+            } else if (tmpWired[0]) {
                 appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 1, 0);
-            } else if (strlen(tmpWifi)) {
+            } else if (tmpWifi[0]) {
                 appendStatuss(status, tmpWifi, COLOR_NORMAL, 1, 1, 0);
             }
         } else {
-            if (strlen(tmpWired)) {
+            if (tmpWired[0]) {
                 appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 1, 0);
             }
-            if (strlen(tmpWifi)) {
+            if (tmpWifi[0]) {
                 appendStatuss(status, tmpWifi, COLOR_NORMAL, 1, 1, 0);
             }
         }
@@ -787,6 +717,7 @@ int main(void) {
         appendStatusi(status, getram(), COLOR_NORMAL, 7886, RAM, "M", 1, 1, 0);
 
         tmp[0] = '\0';
+        // When charging, display that symbol; when fully charged, and plugged in, display that symbol (never both at the same time)
         if (battinfo.status == BattCharging) {
             strcat(tmp, BATT_CHARGING);
         } else if (battinfo.ac) {
@@ -813,16 +744,15 @@ int main(void) {
         freq1 = getfreqi(1);
         freq2 = getfreqi(2);
         freq3 = getfreqi(3);
-
         cpustat = getcpuinfo(cpustat);
         sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);
         appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
 
         appendStatuss(status, datetime, 0, 1, 1, 0);
 
-
         setstatus(status);
 
+        // Reset variables from above
         status[0] = '\0';
         tmp[0] = '\0';
         tmp1[0] = '\0';
