@@ -581,7 +581,7 @@ void appendNetInfo(char * status, float speed, int up, int end) {
     appendStatuss(status, tmp, COLOR_NORMAL, 0, end, 1);
 }
 
-int main(void) {
+int main(int argc, char * argv[]) {
     int freq0, freq1, freq2, freq3;
     char status[280] = "";
 
@@ -617,6 +617,8 @@ int main(void) {
 
     int vol = -1;
     char _volstr[12] = "";
+    
+    int runonce = 0;
 
     /* initialize pulse */
     if (pulse_init(&pulse) == 0)
@@ -624,18 +626,26 @@ int main(void) {
 
     wifi_skfd = wireless_init();
 
+    if (argc >= 2) {
+        if (!strcmp(argv[1], "once")) {
+            runonce = 1;
+        }
+    }
+
 
     // TODO: Screenlocking, Touchpad
+    //
 
-
-    if (!(dpy = XOpenDisplay(NULL))) {
-        fprintf(stderr, "Cannot open display.\n");
-        return 1;
+    if (!runonce) {
+        if (!(dpy = XOpenDisplay(NULL))) {
+            fprintf(stderr, "Cannot open display.\n");
+            return 1;
+        }
     }
 
 
 
-    for (;;sleep(1)) {
+    for ( ; ; sleep(1)) {
 
         if (pulseready) {
             vol = get_default_sink_volume(&pulse);
@@ -752,7 +762,12 @@ int main(void) {
 
         appendStatuss(status, datetime, 0, 1, 1, 0);
 
-        setstatus(status);
+
+        if (runonce) {
+            break;
+        } else {
+            setstatus(status);
+        }
 
         // Reset variables from above
         status[0] = '\0';
@@ -760,9 +775,16 @@ int main(void) {
         tmp1[0] = '\0';
         battcolor = COLOR_NORMAL;
 
+
     }
 
-    XCloseDisplay(dpy);
+    if (dpy) {
+        XCloseDisplay(dpy);
+    }
+
+    if (runonce) {
+        printf("%s%c", status, 0);
+    }
 
     wireless_close(wifi_skfd);
 
