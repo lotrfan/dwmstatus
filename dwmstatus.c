@@ -582,7 +582,7 @@ void appendNetInfo(char * status, float speed, int up, int end) {
 }
 
 int main(int argc, char * argv[]) {
-    int freq0, freq1, freq2, freq3;
+    int freq0, freq1, freq2, freq3, freqavg;
     char status[280] = "";
 
     char datetime[30] = "";
@@ -756,8 +756,10 @@ int main(int argc, char * argv[]) {
         freq1 = getfreqi(1);
         freq2 = getfreqi(2);
         freq3 = getfreqi(3);
+        freqavg = (freq0+freq1+freq2+freq3)/4;
         cpustat = getcpuinfo(cpustat);
-        sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);
+        //sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);
+        sprintf(tmp, "%4i" _BSEP "%3i%%", freqavg, cpustat.usage);
         appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
 
         appendStatuss(status, datetime, 0, 1, 1, 0);
