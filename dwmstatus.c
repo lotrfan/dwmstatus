@@ -7,6 +7,7 @@
 // TODO: switch to using *n functions for strings (that take the number of char's as arg)
 
 #include <stdio.h>
+#define __USE_BSD 1 // for getloadavg
 #include <stdlib.h>
 #include <unistd.h>
 #include <X11/Xlib.h>
@@ -70,7 +71,7 @@ struct BatteryInfo {
 
 struct CPUStat {
     long unsigned int lastcols[4];
-    int usage;
+    float usage;
 };
 
 struct NetSpeed {
@@ -490,12 +491,19 @@ struct CPUStat getcpuinfo(struct CPUStat cpustat) {
     fclose(fd);
 
     if (cols[3] != cpustat.lastcols[3]) {
-        cpustat.usage = 100 * ((cols[0] + cols[1] + cols[2]) - (cpustat.lastcols[0] + cpustat.lastcols[1] + cpustat.lastcols[2])) / (cols[3] - cpustat.lastcols[3]);
+        cpustat.usage = 100. * (float)((cols[0] + cols[1] + cols[2]) - (cpustat.lastcols[0] + cpustat.lastcols[1] + cpustat.lastcols[2])) / (float)(cols[3] - cpustat.lastcols[3]);
     }
     for (i = 0; i < 4; i ++) {
         cpustat.lastcols[i] = cols[i];
     }
     return cpustat;
+}
+float getloadavg_min() {
+    double tmp = 0;
+    if (getloadavg(&tmp,1) == -1) {
+        return 0;
+    }
+    return (float)tmp;
 }
 
 void appendStatuss(char * status, char * text, int color, int start, int end, int sep) {
@@ -757,10 +765,13 @@ int main(int argc, char * argv[]) {
         freq2 = getfreqi(2);
         freq3 = getfreqi(3);
         freqavg = (freq0+freq1+freq2+freq3)/4;
-        cpustat = getcpuinfo(cpustat);
+        //cpustat = getcpuinfo(cpustat);
         //sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);
-        sprintf(tmp, "%4i" _BSEP "%3i%%", freqavg, cpustat.usage);
-        appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
+        //sprintf(tmp, "%4i" _BSEP "%.2f", freqavg, cpustat.usage);
+        appendStatusi(status, freqavg, 0, 0, "", "", 1, 0, 0);
+        appendStatusf(status, getloadavg_min(), 0, 4, "", "", 0, 1, 1);
+//         sprintf(tmp, "%4i" _BSEP "%.2f", freqavg, getloadavg_min());
+//         appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
 
         appendStatuss(status, datetime, 0, 1, 1, 0);
 
