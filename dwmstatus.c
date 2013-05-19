@@ -767,6 +767,13 @@ int main(int argc, char * argv[]) {
                 strcat(tmp, BATT_25);
                 if (battinfo.percent < 20) battcolor = COLOR_WARNING;
                 if (battinfo.percent < 11) battcolor = COLOR_CRITICAL;
+                if (battinfo.percent < 5) {
+                    if (toggle) {
+                        battcolor = COLOR_CRITICAL;
+                    } else {
+                        battcolor = COLOR_NORMAL;
+                    }
+                }
             } else if (battinfo.percent < 50) {
                 strcat(tmp, BATT_50);
             } else if (battinfo.percent < 75) {
