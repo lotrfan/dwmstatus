@@ -659,9 +659,7 @@ int main(int argc, char * argv[]) {
             vol = get_default_sink_volume(&pulse);
             if (vol == -2) {
                 /* Error connecting */
-                if (pulse) {
-                    pulse_deinit(&pulse);
-                }
+                pulse_deinit(&pulse);
                 pulseready = 0;
             } else if (vol == -1) {
                 sprintf(_volstr, VOL_MUTE);
