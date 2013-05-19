@@ -660,13 +660,7 @@ int main(int argc, char * argv[]) {
             if (vol == -1) {
                 sprintf(_volstr, VOL_MUTE);
             } else {
-                if (vol == 100) {
-                    sprintf(_volstr, VOL_UNMUTE "%d", vol);
-                } else if (vol < 10) {
-                    sprintf(_volstr, VOL_UNMUTE "  %d", vol);
-                } else {
-                    sprintf(_volstr, VOL_UNMUTE " %d", vol);
-                }
+                sprintf(_volstr, VOL_UNMUTE "% 3d", vol);
             }
         } else {
             if (pulseready == 0) {
