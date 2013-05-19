@@ -130,7 +130,7 @@ static void get_default_sink_volume_cb(pa_context UNUSED *c, const pa_sink_info 
 }
 int get_default_sink_volume(struct pulseaudio_t *pulse) {
     pa_operation *op;
-    int volume = 0;
+    int volume = -2;
 
     op = pa_context_get_sink_info_by_name(pulse->cxt, pulse->default_sink, get_default_sink_volume_cb, &volume);
 
@@ -657,7 +657,13 @@ int main(int argc, char * argv[]) {
 
         if (pulseready > 0) {
             vol = get_default_sink_volume(&pulse);
-            if (vol == -1) {
+            if (vol == -2) {
+                /* Error connecting */
+                if (pulse) {
+                    pulse_deinit(&pulse);
+                }
+                pulseready = 0;
+            } else if (vol == -1) {
                 sprintf(_volstr, VOL_MUTE);
             } else {
                 sprintf(_volstr, VOL_UNMUTE "% 3d", vol);
@@ -791,6 +797,7 @@ int main(int argc, char * argv[]) {
         status[0] = '\0';
         tmp[0] = '\0';
         tmp1[0] = '\0';
+        _volstr[0] = '\0';
         battcolor = COLOR_NORMAL;
 
 
