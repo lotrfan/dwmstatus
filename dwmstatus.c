@@ -655,7 +655,7 @@ int main(int argc, char * argv[]) {
 
     for ( ; ; sleep(1)) {
 
-        if (pulseready) {
+        if (pulseready > 0) {
             vol = get_default_sink_volume(&pulse);
             if (vol == -1) {
                 sprintf(_volstr, VOL_MUTE);
@@ -667,6 +667,14 @@ int main(int argc, char * argv[]) {
                 } else {
                     sprintf(_volstr, VOL_UNMUTE " %d", vol);
                 }
+            }
+        } else {
+            if (pulseready == 0) {
+                /* initialize pulse */
+                if (pulse_init(&pulse) == 0)
+                    pulseready = 1;
+            } else {
+                pulseready = - ((-pulseready + 1) % 5);
             }
         }
 
