@@ -56,6 +56,7 @@
 #define BATT_CHARGING ""
 #define BATT_AC ""
 #define XAUTOLOCK ""
+#define STATE_UNKNOWN ""
 
 static Display *dpy;
 
@@ -678,6 +679,13 @@ int main(int argc, char * argv[]) {
                     pulseready = 1;
             } else {
                 pulseready = - ((-pulseready + 1) % 5);
+            }
+            if (toggle3 == 0) {
+                strcpy(_volstr, VOL_MUTE);
+            } else if (toggle3 == 1) {
+                strcpy(_volstr, VOL_UNMUTE);
+            } else {
+                strcpy(_volstr, STATE_UNKNOWN);
             }
         }
 
