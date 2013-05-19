@@ -628,7 +628,7 @@ int main(int argc, char * argv[]) {
     
     int runonce = 0;
 
-    int toggle = 0;
+    int toggle = 0, toggle3 = 0;
 
     /* initialize pulse */
     if (pulse_init(&pulse) == 0)
@@ -658,6 +658,7 @@ int main(int argc, char * argv[]) {
     for ( ; ; sleep(1)) {
 
         toggle = ! toggle;
+        toggle3 = (toggle3 + 1) % 3;
 
         if (pulseready > 0) {
             vol = get_default_sink_volume(&pulse);
