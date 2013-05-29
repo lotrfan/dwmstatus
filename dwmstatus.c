@@ -786,18 +786,20 @@ int main(int argc, char * argv[]) {
 
         appendStatuss(status, tmp1, battcolor, 1, 1, 0);
 
-        freq0 = getfreqi(0);
-        freq1 = getfreqi(1);
-        freq2 = getfreqi(2);
-        freq3 = getfreqi(3);
-        freqavg = (freq0+freq1+freq2+freq3)/4;
-        tmp[0] = '\0';
-        //cpustat = getcpuinfo(cpustat);
-        //sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);
-        sprintf(tmp, "%4i", freqavg);
-        appendStatuss(status, tmp, COLOR_NORMAL, 1, 0, 0);
-//        appendStatusi(status, freqavg, 0, 0, "", "", 1, 0, 0);
-        appendStatusf(status, getloadavg_min(), 0, 4, "", "", 0, 1, 1);
+        /* TODO: Fix getfreqi, as it doesn't work with the new driver */
+        /*freq0 = getfreqi(0);*/
+        /*freq1 = getfreqi(1);*/
+        /*freq2 = getfreqi(2);*/
+        /*freq3 = getfreqi(3);*/
+        /*freqavg = (freq0+freq1+freq2+freq3)/4;*/
+        /*tmp[0] = '\0';*/
+        /*//cpustat = getcpuinfo(cpustat);*/
+        /*//sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);*/
+        /*sprintf(tmp, "%4i", freqavg);*/
+        /*appendStatuss(status, tmp, COLOR_NORMAL, 1, 0, 0);*/
+/*//        appendStatusi(status, freqavg, 0, 0, "", "", 1, 0, 0);*/
+        /*appendStatusf(status, getloadavg_min(), 0, 4, "", "", 0, 1, 1);*/
+        appendStatusf(status, getloadavg_min(), 0, 4, "", "", 1, 1, 0);
 
 //         sprintf(tmp, "%4i" _BSEP "%.2f", freqavg, getloadavg_min());
 //         appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
