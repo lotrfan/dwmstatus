@@ -86,6 +86,12 @@ struct NetSpeed {
     long int wireless_tx;
 };
 
+struct Temperature {
+    float temp; /* temp*_input */
+    float warn; /* temp*_max */
+    float crit; /* temp*_crit */
+};
+
 // BEGIN PULSE
 
 #define UNUSED __attribute__((unused))
@@ -590,6 +596,46 @@ void appendNetInfo(char * status, float speed, int up, int end) {
     appendStatuss(status, tmp, COLOR_NORMAL, 0, end, 1);
 }
 
+struct Temperature gettemp(int n) {
+    struct Temperature ret;
+    char tmp[ strlen("/sys/devices/platform/coretemp.0/temp%d_crit_alarm") ];
+    int temperature;
+
+    sprintf(tmp, "/sys/devices/platform/coretemp.0/temp%d_input", n);
+    readfilei(tmp, &temperature);
+    ret.temp = (float)temperature/1000;
+
+    sprintf(tmp, "/sys/devices/platform/coretemp.0/temp%d_max", n);
+    readfilei(tmp, &temperature);
+    ret.warn = (float)temperature/1000;
+
+    sprintf(tmp, "/sys/devices/platform/coretemp.0/temp%d_crit", n);
+    readfilei(tmp, &temperature);
+    ret.crit = (float)temperature/1000;
+
+    return ret;
+}
+
+void appendTemperature(char *status) {
+    struct Temperature temp;
+    char tmp[30];
+    int color;
+    for (int i = 1; i <= 3; i ++) {
+        temp = gettemp(i);
+
+        color = COLOR_NORMAL;
+        if (temp.temp >= 0.96*temp.crit) {
+            color = COLOR_CRITICAL;
+        } else if (temp.temp >= temp.warn) {
+            color = COLOR_WARNING;
+        }
+
+        sprintf(tmp, "%.0fC", temp.temp);
+
+        appendStatuss(status, tmp, color, (i == 1), (i == 3), 1);
+    }
+}
+
 int main(int argc, char * argv[]) {
     int freq0, freq1, freq2, freq3, freqavg;
     char status[280] = "";
@@ -785,6 +831,8 @@ int main(int argc, char * argv[]) {
         }
 
         appendStatuss(status, tmp1, battcolor, 1, 1, 0);
+        
+        appendTemperature(status);
 
         freq0 = getfreqi(0);
         freq1 = getfreqi(1);
