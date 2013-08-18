@@ -23,6 +23,7 @@ ${NAME}: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
 	@echo cp $@ ${HOME}/bin/
+	@killall -q $@ || true
 	@cp $@ ${HOME}/bin/
 
 clean:
