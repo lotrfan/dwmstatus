@@ -294,7 +294,7 @@ void wireless_close(int skfd) {
     iw_sockets_close(skfd);
 }
 
-int getwireless_essid(int skfd, char essid[]) {
+int getwireless_essid(int skfd, char essid[IW_ESSID_MAX_SIZE + 1]) {
     struct iwreq wrq;
 
     if (skfd == -1) {
