@@ -30,6 +30,9 @@
 #define _GNU_SOURCE
 #include <pulse/pulseaudio.h>
 
+#define WIRELESS_DEV "wlp2s0"
+#define WIRED_DEV "enp10s0"
+
 #define COLOR_NORMAL 0
 #define COLOR_CRITICAL 5
 #define COLOR_WARNING 4
@@ -299,14 +302,14 @@ int getwireless_essid(int skfd, char essid[]) {
     }
 
     /* Make sure ESSID is always NULL terminated */
-    memset(essid, 0, sizeof(essid));
+    memset(essid, 0, IW_ESSID_MAX_SIZE + 1);
 
     /* Get ESSID */
     //wrq.u.essid.pointer = (caddr_t)essid;
     wrq.u.essid.pointer = essid;
     wrq.u.essid.length = IW_ESSID_MAX_SIZE + 1;
     wrq.u.essid.flags = 0;
-    if(iw_get_ext(skfd, "wlan0", SIOCGIWESSID, &wrq) < 0) {
+    if(iw_get_ext(skfd, WIRELESS_DEV, SIOCGIWESSID, &wrq) < 0) {
         perror("iw_get_ex");
         return 1;
     }
@@ -317,8 +320,8 @@ int getwireless_essid(int skfd, char essid[]) {
 float getwireless_strength(int skfd) {
     iwstats stats;
     iwrange	range;
-    if(iw_get_range_info(skfd, "wlan0", &range) >= 0) {
-        if(iw_get_stats(skfd, "wlan0", &stats,
+    if(iw_get_range_info(skfd, WIRELESS_DEV, &range) >= 0) {
+        if(iw_get_stats(skfd, WIRELESS_DEV, &stats,
                     &range, 1) >= 0) {
             return (float)stats.qual.qual / (float)range.max_qual.qual;
         }
@@ -328,12 +331,12 @@ float getwireless_strength(int skfd) {
 
 int getwired() {
     int isup;
-    readfilei("/sys/class/net/eth0/carrier", &isup);
+    readfilei("/sys/class/net/" WIRED_DEV "/carrier", &isup);
     return isup;
 }
 int iswifi() {
     FILE *fd;
-    fd = fopen("/sys/class/net/wlan0/carrier", "r");
+    fd = fopen("/sys/class/net/" WIRELESS_DEV "/carrier", "r");
     if(fd == NULL) {
         return 0;
     }
@@ -474,10 +477,10 @@ int getram() {
 
 struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
     long int wired_rx, wired_tx, wireless_rx, wireless_tx;
-    readfileli("/sys/class/net/eth0/statistics/rx_bytes", &wired_rx);
-    readfileli("/sys/class/net/eth0/statistics/tx_bytes", &wired_tx);
-    readfileli("/sys/class/net/wlan0/statistics/rx_bytes", &wireless_rx);
-    readfileli("/sys/class/net/wlan0/statistics/tx_bytes", &wireless_tx);
+    readfileli("/sys/class/net/" WIRED_DEV "/statistics/rx_bytes", &wired_rx);
+    readfileli("/sys/class/net/" WIRED_DEV "/statistics/tx_bytes", &wired_tx);
+    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/rx_bytes", &wireless_rx);
+    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/tx_bytes", &wireless_tx);
     last.wiredDown = (float)(wired_rx - last.wired_rx)/timediff;
     last.wiredUp = (float)(wired_tx - last.wired_tx)/timediff;
     last.wirelessDown = (float)(wireless_rx - last.wireless_rx)/timediff;
