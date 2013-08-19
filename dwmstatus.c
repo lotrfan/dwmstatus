@@ -6,6 +6,7 @@
 
 // TODO: switch to using *n functions for strings (that take the number of char's as arg)
 
+#define _POSIX_SOURCE
 #include <stdio.h>
 #define __USE_BSD 1 // for getloadavg
 #include <stdlib.h>
@@ -20,6 +21,11 @@
 
 #include <sys/types.h>
 #include <dirent.h>
+
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <ifaddrs.h>
 
 #include <sys/socket.h>
 #include <linux/socket.h>
@@ -329,6 +335,47 @@ float getwireless_strength(int skfd) {
     return 0;
 }
 
+char *getip(const char *interface) {
+    struct ifaddrs *ifaddr, *ifa;
+    int family, s;
+    char host[1025]; /* NI_MAXHOST */
+    char *ret = NULL;
+
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return "";
+    }
+
+    /* Walk through linked list, maintaining head pointer so we
+       can free list later */
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL)
+            continue;
+        if (strcmp(ifa->ifa_name, interface) != 0)
+            continue;
+
+        family = ifa->ifa_addr->sa_family;
+
+        /* Display interface name and family (including symbolic
+           form of the latter for the common families) */
+
+        if (family == AF_INET) {
+
+            /* For an AF_INET* interface address, display the address */
+            s = getnameinfo(ifa->ifa_addr,
+                    sizeof(struct sockaddr_in),
+                    host, 1025, NULL, 0, NI_NUMERICHOST); /* 1025 = NI_MAXHOST */
+            if (s != 0) {
+                return "";
+            }
+            ret = strdup(host);
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    return ret;
+}
 int getwired() {
     int isup;
     readfilei("/sys/class/net/" WIRED_DEV "/carrier", &isup);
@@ -648,6 +695,8 @@ int main(int argc, char * argv[]) {
     struct NetSpeed netspeed;
     netspeed = getnetspeed(netspeed, 1);
 
+    char *ip = NULL;
+
     struct BatteryInfo battinfo;
     int battcolor = COLOR_NORMAL;
 
@@ -743,6 +792,25 @@ int main(int argc, char * argv[]) {
         tmpWired[0] = '\0';
         if (getwired()) {
             appendStatuss(tmpWired, WIRED, COLOR_NORMAL, 0, 0, 0);
+            ip = getip(WIRED_DEV);
+            if (ip != NULL) {
+                char *v = tmpWired;
+                if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
+                    strcat(v, " 172..");
+                    strcat(v, ip + strlen("172.17.1."));
+                } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
+                    strcat(v, " 192..");
+                    strcat(v, ip + strlen("192.168.1."));
+                } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
+                    strcat(v, " 10..");
+                    strcat(v, ip + strlen("10.10.1."));
+                } else {
+                    strcat(v, " ");
+                    strcat(v, ip);
+                }
+                free(ip);
+                ip = NULL;
+            }
             appendNetInfo(tmpWired, netspeed.wiredDown, 0, 0);
             appendNetInfo(tmpWired, netspeed.wiredUp, 1, 0 );
         }
@@ -765,6 +833,25 @@ int main(int argc, char * argv[]) {
                 strcat(tmp, essid);
             }
             appendStatuss(tmpWifi, tmp, COLOR_NORMAL, 0, 0, 0);
+            ip = getip(WIRELESS_DEV);
+            if (ip != NULL) {
+                char *v = tmpWifi;
+                if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
+                    strcat(v, " 172..");
+                    strcat(v, ip + strlen("172.17.1."));
+                } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
+                    strcat(v, " 192..");
+                    strcat(v, ip + strlen("192.168.1."));
+                } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
+                    strcat(v, " 10..");
+                    strcat(v, ip + strlen("10.10.1."));
+                } else {
+                    strcat(v, " ");
+                    strcat(v, ip);
+                }
+                free(ip);
+                ip = NULL;
+            }
             appendNetInfo(tmpWifi, netspeed.wirelessDown, 0, 0);
             appendNetInfo(tmpWifi, netspeed.wirelessUp, 1, 0);
         }
