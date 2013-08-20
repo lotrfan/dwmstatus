@@ -43,11 +43,44 @@
 #define COLOR_CRITICAL 5
 #define COLOR_WARNING 4
 
+
+#define FG  "3"
+#define BG  "4"
+#define COL_DEF_FG(b)  "\x1b[" b "8;5;242m"
+#define COL_DEF_BG(b)  "\x1b[" b "8;5;232m"
+
+#define COL_WARNING_FG(b) COL_DEF_BG(b)
+#define COL_WARNING_BG(b) "\x1b[1;" b "3m"
+#define COL_WARNING COL_WARNING_FG(FG) COL_WARNING_BG(BG)
+
+/*#define COL_CRITICAL_FG(b) "\x1b[" b "8;5;255m"*/
+#define COL_CRITICAL_FG(b) "\x1b[1;" b "7;m"
+#define COL_CRITICAL_BG(b) "\x1b[1;" b "1m"
+#define COL_CRITICAL COL_CRITICAL_FG(FG) COL_CRITICAL_BG(BG)
+
+#define COL_NORMAL_FG(b) COL_DEF_BG(b)
+/*#define COL_NORMAL_BG(b) COL_DEF_FG(b)*/
+#define COL_NORMAL_BG(b) "\x1b[0;" b "7m"
+#define COL_NORMAL COL_NORMAL_FG(FG) COL_NORMAL_BG(BG)
+
+/*#define COL_RESET "\x1b[0m"*/
+#define COL_RESET COL_DEF_FG(FG) COL_DEF_BG(BG)
+
+#define START(status) add_start(status, COL_NORMAL_BG(BG), COL_NORMAL);
+#define SEP(status) add_sep(status);
+#define END(status) add_end(status);
+#define START_WARN(status) add_start(status, COL_WARNING_BG(BG), COL_WARNING);
+#define START_CRIT(status) add_start(status, COL_CRITICAL_BG(BG), COL_CRITICAL);
+
 #define _BSTART " "
 #define _BEND ""
 #define _BSEP " "
-#define BSTART "\x0B" _BSTART
-#define BEND _BEND "\x01"
+#define BSTART _BSTART
+#define BSEP _BSEP
+#define BEND _BEND
+/*#define BSTART _BEND*/
+/*#define BSEP _BSEP*/
+/*#define BEND _BSTART*/
 
 #define WIFI_33 ""
 #define WIFI_66 ""
@@ -67,7 +100,11 @@
 #define XAUTOLOCK ""
 #define STATE_UNKNOWN ""
 
+#define STATUS_LEN 8192
+
 static Display *dpy;
+
+int toggle = 0, toggle3 = 0;
 
 enum {BattFull, BattCharging, BattDischarging};
 struct BatteryInfo {
@@ -77,11 +114,6 @@ struct BatteryInfo {
     int hours;
     int minutes;
     int seconds;
-};
-
-struct CPUStat {
-    long unsigned int lastcols[4];
-    float usage;
 };
 
 struct NetSpeed {
@@ -539,22 +571,6 @@ struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
     return last;
 }
 
-struct CPUStat getcpuinfo(struct CPUStat cpustat) {
-    long int cols[4];
-    FILE* fd;
-    int i;
-    fd = fopen("/proc/stat", "r");
-    fscanf(fd,"cpu %ld %ld %ld %ld", &(cols[0]), &(cols[1]), &(cols[2]), &(cols[3])); //, &(cols[4]), &(cols[5]), &(cols[6]), &(cols[7]), &(cols[8]));
-    fclose(fd);
-
-    if (cols[3] != cpustat.lastcols[3]) {
-        cpustat.usage = 100. * (float)((cols[0] + cols[1] + cols[2]) - (cpustat.lastcols[0] + cpustat.lastcols[1] + cpustat.lastcols[2])) / (float)(cols[3] - cpustat.lastcols[3]);
-    }
-    for (i = 0; i < 4; i ++) {
-        cpustat.lastcols[i] = cols[i];
-    }
-    return cpustat;
-}
 float getloadavg_min() {
     double tmp = 0;
     if (getloadavg(&tmp,1) == -1) {
@@ -563,69 +579,7 @@ float getloadavg_min() {
     return (float)tmp;
 }
 
-void appendStatuss(char * status, char * text, int color, int start, int end, int sep) {
-    char snColor[2];
-    char siColor[2];
-
-    if (!strlen(text)) return;
-
-    if (start || end) {
-        snColor[0] = (color + 1); // color is zero based, but color strings are 1-based
-        snColor[1] = '\0';
-        siColor[0] = ( color + 11);
-        siColor[1] = '\0';
-    }
-
-    if (start) {
-        strcat(status, siColor);
-        strcat(status, _BSTART);
-    } else if (sep) {
-        strcat(status, _BSEP);
-    }
-    strcat(status, text);
-    if (end) {
-        strcat(status, _BEND);
-        strcat(status, snColor);
-    }
-}
-
-void appendStatusi(char * status, int num, int low, int high, char pre[], char post[], int start, int end, int sep) {
-    char tmp[strlen(pre) + 10 + strlen(post)];
-    int color = COLOR_NORMAL;
-
-    if (high != low) {
-        float percent = (float)(num - low) / (float)high;
-        high -= low;
-
-        if (percent > 0.90) {
-            color = COLOR_CRITICAL;
-        } else if (percent > 0.70) {
-            color = COLOR_WARNING;
-        }
-    }
-    sprintf(tmp, "%s%i%s", pre, num, post);
-    appendStatuss(status, tmp, color, start, end, sep);
-}
-
-void appendStatusf(char * status, float num, float low, float high, char pre[], char post[], int start, int end, int sep) {
-    char tmp[strlen(pre) + 10 + strlen(post)];
-    int color = COLOR_NORMAL;
-
-    if (high != low) {
-        float percent = (float)(num - low) / (float)high;
-        high -= low;
-
-        if (percent > 0.90) {
-            color = COLOR_CRITICAL;
-        } else if (percent > 0.70) {
-            color = COLOR_WARNING;
-        }
-    }
-    sprintf(tmp, "%s%.4g%s", pre, num, post);
-    appendStatuss(status, tmp, color, start, end, sep);
-}
-
-void appendNetInfo(char * status, float speed, int up, int end) {
+void appendNetInfo(char * status, float speed, int up) {
     int megabytes = 0;
     char tmp[15] = "";
     speed /= 1024;
@@ -639,11 +593,10 @@ void appendNetInfo(char * status, float speed, int up, int end) {
         speed = truncf(10.*speed)/10;
     }
     if (megabytes) {
-        sprintf(tmp, "%s% 2.1fM", (up ? NET_UP : NET_DOWN), speed );
+        sprintf(status + strlen(status), "%s% 2.1fM", (up ? NET_UP : NET_DOWN), speed );
     } else {
-        sprintf(tmp, "%s% 5.0f", (up ? NET_UP : NET_DOWN), speed );
+        sprintf(status + strlen(status), "%s% 5.0f", (up ? NET_UP : NET_DOWN), speed );
     }
-    appendStatuss(status, tmp, COLOR_NORMAL, 0, end, 1);
 }
 
 struct Temperature gettemp(int n) {
@@ -666,74 +619,341 @@ struct Temperature gettemp(int n) {
     return ret;
 }
 
-void appendTemperature(char *status) {
-    struct Temperature temp;
-    char tmp[30];
-    int color;
-    for (int i = 1; i <= 3; i ++) {
-        temp = gettemp(i);
+/*[> If fg == bg == -5, then swap them (for BEND) <]*/
+/*void add_color(char *status, int fg, int bg) {*/
+    /*if (fg == bg == -5) {*/
+        /*sprintf(status + strlen(status), "\e[1;%dm\e[1;%dm", color_bg + 30, color_fg + 40);*/
+        /*return;*/
+    /*}*/
+    /*if (fg == bg == -2) {*/
+        /*sprintf(status + strlen(status), "\e[1;%dm\e[1;%dm", color_bg + 40, color_fg + 30);*/
+        /*return;*/
+    /*}*/
+    /*if (fg < 0 && bg < 0) {*/
+        /*fg = 0;*/
+        /*bg = 0;*/
+    /*}*/
+    /*if (fg >= 0 && fg <= 7) {*/
+        /*color_fg = fg;*/
+        /*sprintf(status + strlen(status), "\e[1;%dm", color_fg + 30);*/
+    /*}*/
+    /*if (bg >= 0 && bg <= 7) {*/
+        /*color_bg = bg;*/
+        /*sprintf(status + strlen(status), "\e[1;%dm", color_bg + 40);*/
+    /*}*/
+/*}*/
 
-        color = COLOR_NORMAL;
-        if (temp.temp >= 0.96*temp.crit) {
-            color = COLOR_CRITICAL;
-        } else if (temp.temp >= temp.warn) {
-            color = COLOR_WARNING;
+void add_start(char *status, char *color_fg, char *color_after) {
+    strcat(status, COL_DEF_BG(FG));
+    strcat(status, color_fg);
+    strcat(status, BSTART);
+    strcat(status, color_after);
+}
+void add_sep(char *status) {
+    strcat(status, BSEP);
+}
+void add_end(char *status) {
+    strcat(status, COL_DEF_BG(FG));
+    strcat(status, BEND);
+    strcat(status, COL_RESET);
+}
+
+void add_networking(char *status) {
+    static struct NetSpeed netspeed;
+    netspeed = getnetspeed(netspeed, 1);
+    static int first = 1;
+
+    int wired = 0;
+    int wireless = 0;
+    int bonded = 0;
+    char *ip, *ip_wired;
+
+    char essid[IW_ESSID_MAX_SIZE + 1];
+    float wifi_qual;
+    static int wifi_skfd;
+
+    if (first) {
+        wifi_skfd = wireless_init();
+    }
+
+    ip_wired = getip(WIRED_DEV);
+    if (ip_wired != NULL && strlen(ip_wired)) {
+        wired = 1;
+    }
+    if (isbonded()) {
+        bonded = 1;
+    }
+    if (!getwireless_essid(wifi_skfd, essid) && strlen(essid)) {
+        wireless = 1;
+    }
+
+    if (!wired && !wireless) {
+        first = 0;
+        return;
+    }
+
+    START(status);
+
+    if (wired) {
+        strcat(status, WIRED);
+        ip = ip_wired;
+        if (ip != NULL) {
+            if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
+                strcat(status, " 172..");
+                strcat(status, ip + strlen("172.17.1."));
+            } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
+                strcat(status, " 192..");
+                strcat(status, ip + strlen("192.168.1."));
+            } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
+                strcat(status, " 10..");
+                strcat(status, ip + strlen("10.10.1."));
+            } else {
+                strcat(status, " ");
+                strcat(status, ip);
+            }
+            free(ip);
+            ip = NULL;
+        }
+        add_sep(status);
+        appendNetInfo(status, !first * netspeed.wiredDown, 0);
+        add_sep(status);
+        appendNetInfo(status, !first * netspeed.wiredUp, 1);
+        if (bonded && wireless) {
+            // Only need a sep (bonded, both are connected
+            SEP(status);
+        } else if (wireless) {
+            END(status);
+            START(status);
+        }
+    }
+
+    if (wireless) {
+        wifi_qual = getwireless_strength(wifi_skfd);
+        if (wifi_qual <= 0.33) {
+            strcat(status, WIFI_33 " ");
+        } else if (wifi_qual <= 0.66) {
+            strcat(status, WIFI_66 " ");
+        } else {
+            strcat(status, WIFI_100 " ");
+        }
+        strcat(status, essid);
+        ip = getip(WIRELESS_DEV);
+        if (ip != NULL) {
+            if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
+                strcat(status, " 172..");
+                strcat(status, ip + strlen("172.17.1."));
+            } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
+                strcat(status, " 192..");
+                strcat(status, ip + strlen("192.168.1."));
+            } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
+                strcat(status, " 10..");
+                strcat(status, ip + strlen("10.10.1."));
+            } else {
+                strcat(status, " ");
+                strcat(status, ip);
+            }
+            free(ip);
+            ip = NULL;
+        }
+        SEP(status);
+        appendNetInfo(status, !first * netspeed.wirelessDown, 0);
+        SEP(status);
+        appendNetInfo(status, !first * netspeed.wirelessUp, 1);
+    }
+
+    END(status);
+
+    first = 0;
+}
+
+void add_volume(char *status) {
+    static struct pulseaudio_t pulse;
+    static int pulseready = -1;
+    int vol = -1;
+    /* initialize pulse */
+    if (pulseready == -1) {
+        if (pulse_init(&pulse) == 0) {
+            pulseready = 1;
+        } else {
+            pulseready = 0;
+        }
+    }
+
+    /*add_start(status, COL_WARNING_BG(BG), COL_WARNING);*/
+    START(status);
+
+    if (pulseready > 0) {
+        vol = get_default_sink_volume(&pulse);
+        if (vol == -2) {
+            /* Error connecting */
+            pulse_deinit(&pulse);
+            pulseready = 0;
+        } else if (vol == -1) {
+            strcat(status, VOL_MUTE);
+        } else {
+            sprintf(status + strlen(status), VOL_UNMUTE "% 3d", vol);
+        }
+    } else {
+        if (pulseready == 0) {
+            /* initialize pulse */
+            if (pulse_init(&pulse) == 0)
+                pulseready = 1;
+        } else {
+            pulseready = - ((-pulseready + 1) % 5);
+        }
+        switch (toggle3) {
+            case 0:
+                strcat(status, VOL_MUTE);
+                break;
+            case 1:
+                strcat(status, VOL_UNMUTE);
+                break;
+            case 2:
+                strcat(status, STATE_UNKNOWN);
+                break;
+        }
+    }
+    END(status);
+}
+
+void add_screenlocker(char *status) {
+    if (pidof("xautolock") == -1) {
+        // xautolock NOT running
+        START(status);
+        strcat(status, XAUTOLOCK);
+        END(status);
+    }
+}
+
+void add_ram(char *status) {
+    int ram = getram();
+    if (ram > 7450) {
+        START_CRIT(status);
+    } else if (ram > 6700) {
+        START_WARN(status);
+    } else {
+        START(status);
+    }
+    sprintf(status + strlen(status), RAM "%dM", ram);
+    END(status);
+}
+
+void add_battery(char *status) {
+    struct BatteryInfo battinfo = getbattery();
+
+    if (!battinfo.ac || battinfo.status == BattCharging) {
+        if (battinfo.percent > 20) {
+            START(status);
+        } else if (battinfo.percent > 11) {
+            START_WARN(status);
+        } else {
+            if (battinfo.percent <= 5) {
+                if (toggle) {
+                    START_CRIT(status);
+                } else {
+                    START(status);
+                }
+            } else {
+                START_CRIT(status);
+            }
+        }
+    } else {
+        START(status);
+    }
+
+    // When charging, display that symbol; when fully charged, and plugged in, display that symbol (never both at the same time)
+    if (battinfo.status == BattCharging) {
+        strcat(status, BATT_CHARGING);
+    } else if (battinfo.ac) {
+        strcat(status, BATT_AC);
+    }
+    if (!battinfo.ac || battinfo.status == BattCharging) {
+        if (battinfo.percent < 25) {
+            strcat(status, BATT_25);
+        } else if (battinfo.percent < 50) {
+            strcat(status, BATT_50);
+        } else if (battinfo.percent < 75) {
+            strcat(status, BATT_75);
+        } else {
+            strcat(status, BATT_100);
+        }
+        SEP(status);
+        sprintf(status + strlen(status), "%i%%", battinfo.percent);
+        SEP(status);
+        sprintf(status + strlen(status), "%02d:%02d:%02d", battinfo.hours, battinfo.minutes, battinfo.seconds );
+    }
+    END(status);
+}
+
+void add_temperature(char *status) {
+    int color = 0;
+    const int max_i = 3;
+    struct Temperature temp[max_i];
+    for (int i = 1; i <= max_i; i ++) {
+        temp[i-1] = gettemp(i);
+        if (temp[i-1].temp >= 0.96*temp[i-1].crit) {
+            if (color < 2) { color = 2; }
+        } else if (temp[i-1].temp >= temp[i-1].warn) {
+            if (color < 1) { color = 1; }
+        }
+    }
+
+    switch (color) {
+        case 0:
+            START(status);
+            break;
+        case 1:
+            START_WARN(status);
+            break;
+        case 2:
+            START_CRIT(status);
+            break;
+    }
+
+    for (int i = 0; i < max_i; i ++) {
+        if ((i - 1) >= 0) {
+            SEP(status);
         }
 
-        sprintf(tmp, "%.0fC", temp.temp);
-
-        appendStatuss(status, tmp, color, (i == 1), (i == 3), 1);
+        sprintf(status + strlen(status), "%.0fC", temp[i].temp);
     }
+
+    END(status);
+}
+
+void add_datetime(char *status) {
+    char datetime[30];
+    time_t result;
+    struct tm *resulttm;
+
+    result = time(NULL);
+    resulttm = localtime(&result);
+    if(resulttm == NULL) {
+        return;
+    }
+    START(status);
+
+    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%b %d", resulttm);
+    strcat(status, datetime);
+
+    SEP(status);
+
+    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%H:%M:%S", resulttm);
+    strcat(status, datetime);
+
+    END(status);
 }
 
 int main(int argc, char * argv[]) {
     int freq0, freq1, freq2, freq3, freqavg;
-    char status[280] = "";
-
-    char datetime[30] = "";
-
-    struct NetSpeed netspeed;
-    netspeed = getnetspeed(netspeed, 1);
-
-    char *ip = NULL;
-
-    struct BatteryInfo battinfo;
-    int battcolor = COLOR_NORMAL;
+    char status[STATUS_LEN];
 
     char tmp[100] = "";
     char tmp1[100] = "";
-    char tmpWired[100] = "";
-    char tmpWifi[100] = "";
 
-    char essid[IW_ESSID_MAX_SIZE + 1];
-    float wifi_qual;
     //    char _net[IW_ESSID_MAX_SIZE + 1 + 10] = ""; // size of essid + icon + wired
 
-    int wifi_skfd;
-
-    struct CPUStat cpustat;
-    for (int i = 0; i < 4; i ++) {
-        cpustat.lastcols[i] = 0;
-    }
-    cpustat = getcpuinfo(cpustat);
-
-
-    struct pulseaudio_t pulse;
-
-    int pulseready = 0;
-
-    int vol = -1;
-    char _volstr[12] = "";
-    
     int runonce = 0;
-
-    int toggle = 0, toggle3 = 0;
-
-    /* initialize pulse */
-    if (pulse_init(&pulse) == 0)
-        pulseready = 1;
-
-    wifi_skfd = wireless_init();
 
     if (argc >= 2) {
         if (!strcmp(argv[1], "once")) {
@@ -759,185 +979,32 @@ int main(int argc, char * argv[]) {
         toggle = ! toggle;
         toggle3 = (toggle3 + 1) % 3;
 
-        if (pulseready > 0) {
-            vol = get_default_sink_volume(&pulse);
-            if (vol == -2) {
-                /* Error connecting */
-                pulse_deinit(&pulse);
-                pulseready = 0;
-            } else if (vol == -1) {
-                sprintf(_volstr, VOL_MUTE);
-            } else {
-                sprintf(_volstr, VOL_UNMUTE "% 3d", vol);
-            }
-        } else {
-            if (pulseready == 0) {
-                /* initialize pulse */
-                if (pulse_init(&pulse) == 0)
-                    pulseready = 1;
-            } else {
-                pulseready = - ((-pulseready + 1) % 5);
-            }
-            if (toggle3 == 0) {
-                strcpy(_volstr, VOL_MUTE);
-            } else if (toggle3 == 1) {
-                strcpy(_volstr, VOL_UNMUTE);
-            } else {
-                strcpy(_volstr, STATE_UNKNOWN);
-            }
-        }
+        strcat(status, COL_RESET);
 
-        netspeed = getnetspeed(netspeed, 1);
-
-        tmpWired[0] = '\0';
-        if (getwired()) {
-            appendStatuss(tmpWired, WIRED, COLOR_NORMAL, 0, 0, 0);
-            ip = getip(WIRED_DEV);
-            if (ip != NULL) {
-                char *v = tmpWired;
-                if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
-                    strcat(v, " 172..");
-                    strcat(v, ip + strlen("172.17.1."));
-                } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
-                    strcat(v, " 192..");
-                    strcat(v, ip + strlen("192.168.1."));
-                } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
-                    strcat(v, " 10..");
-                    strcat(v, ip + strlen("10.10.1."));
-                } else {
-                    strcat(v, " ");
-                    strcat(v, ip);
-                }
-                free(ip);
-                ip = NULL;
-            }
-            appendNetInfo(tmpWired, netspeed.wiredDown, 0, 0);
-            appendNetInfo(tmpWired, netspeed.wiredUp, 1, 0 );
-        }
-
-        tmp[0] = '\0';
-        tmpWifi[0] = '\0';
-        if (!getwireless_essid(wifi_skfd, essid) && strlen(essid)) {
-            wifi_qual = getwireless_strength(wifi_skfd);
-            if (wifi_qual <= 0.33) {
-                if (strlen(tmp)) strcat(tmp, _BSEP);
-                strcat(tmp, WIFI_33 " ");
-                strcat(tmp, essid);
-            } else if (wifi_qual <= 0.66) {
-                if (strlen(tmp)) strcat(tmp, _BSEP);
-                strcat(tmp, WIFI_66 " ");
-                strcat(tmp, essid);
-            } else {
-                if (strlen(tmp)) strcat(tmp, _BSEP);
-                strcat(tmp, WIFI_100 " ");
-                strcat(tmp, essid);
-            }
-            appendStatuss(tmpWifi, tmp, COLOR_NORMAL, 0, 0, 0);
-            ip = getip(WIRELESS_DEV);
-            if (ip != NULL) {
-                char *v = tmpWifi;
-                if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
-                    strcat(v, " 172..");
-                    strcat(v, ip + strlen("172.17.1."));
-                } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
-                    strcat(v, " 192..");
-                    strcat(v, ip + strlen("192.168.1."));
-                } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
-                    strcat(v, " 10..");
-                    strcat(v, ip + strlen("10.10.1."));
-                } else {
-                    strcat(v, " ");
-                    strcat(v, ip);
-                }
-                free(ip);
-                ip = NULL;
-            }
-            appendNetInfo(tmpWifi, netspeed.wirelessDown, 0, 0);
-            appendNetInfo(tmpWifi, netspeed.wirelessUp, 1, 0);
-        }
-        // Now tmpWired and tmpWifi both have their respective info
-        // Choose how to display them:
-        //  * if a bond interface is detected, display together using a splitter
-        //  * if bond is not active, then display then separate
-        // In either case, only display what's active
-        if (isbonded()) {
-            if (tmpWired[0] && tmpWifi[0]) {
-                appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 0, 0);
-                appendStatuss(status, tmpWifi,  COLOR_NORMAL, 0, 1, 1);
-            } else if (tmpWired[0]) {
-                appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 1, 0);
-            } else if (tmpWifi[0]) {
-                appendStatuss(status, tmpWifi, COLOR_NORMAL, 1, 1, 0);
-            }
-        } else {
-            if (tmpWired[0]) {
-                appendStatuss(status, tmpWired, COLOR_NORMAL, 1, 1, 0);
-            }
-            if (tmpWifi[0]) {
-                appendStatuss(status, tmpWifi, COLOR_NORMAL, 1, 1, 0);
-            }
-        }
-
-        getdatetime(datetime, 30);
-
-        battinfo = getbattery();
-
-        appendStatuss(status, _volstr, COLOR_NORMAL, 1, 1, 0);
-
-        if (pidof("xautolock") == -1) {
-            // xautolock NOT running
-            appendStatuss(status, XAUTOLOCK, COLOR_NORMAL, 1, 1, 0);
-        }
-
-        appendStatusi(status, getram(), COLOR_NORMAL, 7886, RAM, "M", 1, 1, 0);
-
-        tmp[0] = '\0';
-        // When charging, display that symbol; when fully charged, and plugged in, display that symbol (never both at the same time)
-        if (battinfo.status == BattCharging) {
-            strcat(tmp, BATT_CHARGING);
-        } else if (battinfo.ac) {
-            strcat(tmp1, BATT_AC);
-        }
-        if (!battinfo.ac || battinfo.status == BattCharging) {
-            if (battinfo.percent < 25) {
-                strcat(tmp, BATT_25);
-                if (battinfo.percent < 20) battcolor = COLOR_WARNING;
-                if (battinfo.percent < 11) battcolor = COLOR_CRITICAL;
-                if (battinfo.percent < 5) {
-                    if (toggle) {
-                        battcolor = COLOR_CRITICAL;
-                    } else {
-                        battcolor = COLOR_NORMAL;
-                    }
-                }
-            } else if (battinfo.percent < 50) {
-                strcat(tmp, BATT_50);
-            } else if (battinfo.percent < 75) {
-                strcat(tmp, BATT_75);
-            } else {
-                strcat(tmp, BATT_100);
-            }
-            sprintf(tmp1, "%s" _BSEP "%i%%" _BSEP "%02d:%02d:%02d", tmp, battinfo.percent, battinfo.hours, battinfo.minutes, battinfo.seconds );
-        }
-
-        appendStatuss(status, tmp1, battcolor, 1, 1, 0);
-        
-        appendTemperature(status);
+        add_networking(status);
+        add_volume(status);
+        add_ram(status);
+        add_screenlocker(status);
+        add_battery(status);
+        add_temperature(status);
+        add_datetime(status);
 
         /*
+
+        [>
         freq0 = getfreqi(0);
         freq1 = getfreqi(1);
         freq2 = getfreqi(2);
         freq3 = getfreqi(3);
         freqavg = (freq0+freq1+freq2+freq3)/4;
         tmp[0] = '\0';
-        */
+        <]
         //cpustat = getcpuinfo(cpustat);
         //sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);
-        /*
+        [>
         sprintf(tmp, "%4i", freqavg);
         appendStatuss(status, tmp, COLOR_NORMAL, 1, 0, 0);
-        */
+        <]
 //        appendStatusi(status, freqavg, 0, 0, "", "", 1, 0, 0);
         //appendStatusf(status, getloadavg_min(), 0, 4, "", "", 0, 1, 1);
         appendStatusf(status, getloadavg_min(), 0, 4, "", "", 1, 1, 0);
@@ -945,21 +1012,17 @@ int main(int argc, char * argv[]) {
 //         sprintf(tmp, "%4i" _BSEP "%.2f", freqavg, getloadavg_min());
 //         appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
 
-        appendStatuss(status, datetime, 0, 1, 1, 0);
 
-
-        if (runonce) {
-            break;
-        } else {
+        /*if (runonce) {*/
+            /*break;*/
+        /*} else {*/
             setstatus(status);
-        }
+        /*}*/
 
         // Reset variables from above
         status[0] = '\0';
         tmp[0] = '\0';
         tmp1[0] = '\0';
-        _volstr[0] = '\0';
-        battcolor = COLOR_NORMAL;
 
 
     }
@@ -972,12 +1035,14 @@ int main(int argc, char * argv[]) {
         printf("%s%c", status, 0);
     }
 
-    wireless_close(wifi_skfd);
+    // TODO: pass these NULL to signal a close
 
-    if (pulseready) {
-        /* shut down */
-        pulse_deinit(&pulse);
-    }
+    /*wireless_close(wifi_skfd);*/
+
+    /*if (pulseready) {*/
+        /*[> shut down <]*/
+        /*pulse_deinit(&pulse);*/
+    /*}*/
 
     return 0;
 }
