@@ -38,6 +38,7 @@
 
 #define WIRELESS_DEV "wlp2s0"
 #define WIRED_DEV "enp10s0"
+#define BONDED_DEV "bond0"
 
 #define COLOR_NORMAL 0
 #define COLOR_CRITICAL 5
@@ -424,7 +425,7 @@ int iswifi() {
 }
 int isbonded() {
     FILE *fd;
-    fd = fopen("/sys/class/net/bond0/carrier", "r");
+    fd = fopen("/sys/class/net/" BONDED_DEV "/carrier", "r");
     if(fd == NULL) {
         return 0;
     }
@@ -658,6 +659,25 @@ void add_end(char *status) {
     strcat(status, COL_RESET);
 }
 
+char *add_networking_ip(char *status, char *ip) {
+    if (ip != NULL) {
+        if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
+            strcat(status, "172..");
+            strcat(status, ip + strlen("172.17.1."));
+        } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
+            strcat(status, "192..");
+            strcat(status, ip + strlen("192.168.1."));
+        } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
+            strcat(status, "10..");
+            strcat(status, ip + strlen("10.10.1."));
+        } else {
+            strcat(status, ip);
+        }
+        free(ip);
+        ip = NULL;
+    }
+    return ip;
+}
 void add_networking(char *status) {
     static struct NetSpeed netspeed;
     netspeed = getnetspeed(netspeed, 1);
@@ -666,7 +686,6 @@ void add_networking(char *status) {
     int wired = 0;
     int wireless = 0;
     int bonded = 0;
-    char *ip, *ip_wired;
 
     char essid[IW_ESSID_MAX_SIZE + 1];
     float wifi_qual;
@@ -676,8 +695,7 @@ void add_networking(char *status) {
         wifi_skfd = wireless_init();
     }
 
-    ip_wired = getip(WIRED_DEV);
-    if (ip_wired != NULL && strlen(ip_wired)) {
+    if (getwired()) {
         wired = 1;
     }
     if (isbonded()) {
@@ -694,38 +712,6 @@ void add_networking(char *status) {
 
     START(status);
 
-    if (wired) {
-        strcat(status, WIRED);
-        ip = ip_wired;
-        if (ip != NULL) {
-            if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
-                strcat(status, " 172..");
-                strcat(status, ip + strlen("172.17.1."));
-            } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
-                strcat(status, " 192..");
-                strcat(status, ip + strlen("192.168.1."));
-            } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
-                strcat(status, " 10..");
-                strcat(status, ip + strlen("10.10.1."));
-            } else {
-                strcat(status, " ");
-                strcat(status, ip);
-            }
-            free(ip);
-            ip = NULL;
-        }
-        add_sep(status);
-        appendNetInfo(status, !first * netspeed.wiredDown, 0);
-        add_sep(status);
-        appendNetInfo(status, !first * netspeed.wiredUp, 1);
-        if (bonded && wireless) {
-            // Only need a sep (bonded, both are connected
-            SEP(status);
-        } else if (wireless) {
-            END(status);
-            START(status);
-        }
-    }
 
     if (wireless) {
         wifi_qual = getwireless_strength(wifi_skfd);
@@ -737,28 +723,40 @@ void add_networking(char *status) {
             strcat(status, WIFI_100 " ");
         }
         strcat(status, essid);
-        ip = getip(WIRELESS_DEV);
-        if (ip != NULL) {
-            if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
-                strcat(status, " 172..");
-                strcat(status, ip + strlen("172.17.1."));
-            } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
-                strcat(status, " 192..");
-                strcat(status, ip + strlen("192.168.1."));
-            } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
-                strcat(status, " 10..");
-                strcat(status, ip + strlen("10.10.1."));
-            } else {
-                strcat(status, " ");
-                strcat(status, ip);
-            }
-            free(ip);
-            ip = NULL;
+        if (!bonded) {
+            strcat(status, " ");
+            add_networking_ip(status, getip(WIRELESS_DEV));
         }
         SEP(status);
         appendNetInfo(status, !first * netspeed.wirelessDown, 0);
         SEP(status);
         appendNetInfo(status, !first * netspeed.wirelessUp, 1);
+        if (bonded && wired) {
+            // Only need a sep (bonded, both are connected
+            SEP(status);
+        } else if (wired) {
+            END(status);
+            START(status);
+        }
+    }
+
+    if (bonded) {
+        add_networking_ip(status, getip(BONDED_DEV));
+        if (wired) {
+            SEP(status);
+        }
+    }
+
+    if (wired) {
+        strcat(status, WIRED);
+        if (!bonded) {
+            strcat(status, " ");
+            add_networking_ip(status, getip(WIRED_DEV));
+        }
+        add_sep(status);
+        appendNetInfo(status, !first * netspeed.wiredDown, 0);
+        add_sep(status);
+        appendNetInfo(status, !first * netspeed.wiredUp, 1);
     }
 
     END(status);
