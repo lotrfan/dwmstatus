@@ -731,7 +731,7 @@ void add_networking(char *status) {
         appendNetInfo(status, !first * netspeed.wirelessDown, 0);
         SEP(status);
         appendNetInfo(status, !first * netspeed.wirelessUp, 1);
-        if (bonded && wired) {
+        if (bonded) {
             // Only need a sep (bonded, both are connected
             SEP(status);
         } else if (wired) {
