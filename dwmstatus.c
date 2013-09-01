@@ -47,22 +47,38 @@
 
 #define FG  "3"
 #define BG  "4"
-#define COL_DEF_FG(b)  "\x1b[" b "8;5;242m"
+#define COL_DEF_FG(b)  "\x1b[" b "8;5;245m"
 #define COL_DEF_BG(b)  "\x1b[" b "8;5;232m"
 
-#define COL_WARNING_FG(b) COL_DEF_BG(b)
-#define COL_WARNING_BG(b) "\x1b[1;" b "3m"
+#define COL_WARNING_FG(b) "\x1b[1;" b "3m"
+#define COL_WARNING_BG(b) COL_DEF_BG(b)
 #define COL_WARNING COL_WARNING_FG(FG) COL_WARNING_BG(BG)
 
 /*#define COL_CRITICAL_FG(b) "\x1b[" b "8;5;255m"*/
-#define COL_CRITICAL_FG(b) "\x1b[1;" b "7;m"
-#define COL_CRITICAL_BG(b) "\x1b[1;" b "1m"
+#define COL_CRITICAL_FG(b) "\x1b[1;" b "1m"
+#define COL_CRITICAL_BG(b) COL_DEF_BG(b)
 #define COL_CRITICAL COL_CRITICAL_FG(FG) COL_CRITICAL_BG(BG)
 
-#define COL_NORMAL_FG(b) COL_DEF_BG(b)
+#define COL_NORMAL_FG(b) "\x1b[0;" b "7m"
 /*#define COL_NORMAL_BG(b) COL_DEF_FG(b)*/
-#define COL_NORMAL_BG(b) "\x1b[0;" b "7m"
+#define COL_NORMAL_BG(b) COL_DEF_BG(b)
 #define COL_NORMAL COL_NORMAL_FG(FG) COL_NORMAL_BG(BG)
+
+#define COL_DESC_FG(b) "\x1b[" b "8;5;243m"
+#define COL_DESC_BG(b) COL_DEF_BG(b)
+#define COL_DESC COL_DESC_FG(FG) COL_DESC_BG(BG)
+
+#define COL_UNIT_FG(b) "\x1b[" b "8;5;39m"
+#define COL_UNIT_BG(b) COL_DEF_BG(b)
+#define COL_UNIT COL_UNIT_FG(FG) COL_UNIT_BG(BG)
+
+#define COL_SEP_FG(b) "\x1b[" b "8;5;48m"
+#define COL_SEP_BG(b) COL_DEF_BG(b)
+#define COL_SEP COL_SEP_FG(FG) COL_SEP_BG(BG)
+
+#define COL_IP_FG(b) "\x1b[" b "8;5;103m"
+#define COL_IP_BG(b) COL_DEF_BG(b)
+#define COL_IP COL_IP_FG(FG) COL_IP_BG(BG)
 
 /*#define COL_RESET "\x1b[0m"*/
 #define COL_RESET COL_DEF_FG(FG) COL_DEF_BG(BG)
@@ -73,9 +89,9 @@
 #define START_WARN(status) add_start(status, COL_WARNING_BG(BG), COL_WARNING);
 #define START_CRIT(status) add_start(status, COL_CRITICAL_BG(BG), COL_CRITICAL);
 
-#define _BSTART " "
-#define _BEND ""
-#define _BSEP " "
+#define _BSTART "\x1b[38;5;49m:" COL_NORMAL
+#define _BEND   "\x1b[38;5;49m; " COL_NORMAL
+#define _BSEP " "
 #define BSTART _BSTART
 #define BSEP _BSEP
 #define BEND _BEND
@@ -83,25 +99,13 @@
 /*#define BSEP _BSEP*/
 /*#define BEND _BSTART*/
 
-#define WIFI_33 ""
-#define WIFI_66 ""
-#define WIFI_100 ""
-#define WIRED ""
-#define NET_UP ""
-#define NET_DOWN ""
-#define RAM ""
-#define VOL_MUTE ""
-#define VOL_UNMUTE ""
-#define BATT_25 ""
-#define BATT_50 ""
-#define BATT_75 ""
-#define BATT_100 ""
-#define BATT_CHARGING ""
-#define BATT_AC ""
+#define NET_UP "U"
+#define NET_DOWN "D"
 #define XAUTOLOCK ""
-#define STATE_UNKNOWN ""
 
 #define STATUS_LEN 8192
+
+#define SLEEP_TIME 1
 
 static Display *dpy;
 
@@ -437,7 +441,7 @@ int isbonded() {
  * Returns in MHz
  */
 float getfreqf(int cpu) {
-    float freq;
+    float freq = 0;
 
     switch (cpu) {
         case 0:
@@ -463,7 +467,7 @@ float getfreqf(int cpu) {
  * Returns in Hz
  */
 int getfreqi(int cpu) {
-    int freq;
+    int freq = 0;
 
     switch (cpu) {
         case 0:
@@ -484,22 +488,6 @@ int getfreqi(int cpu) {
 
     return freq;;
 }
-
-void getdatetime(char buf[], int len) {
-    time_t result;
-    struct tm *resulttm;
-
-    result = time(NULL);
-    resulttm = localtime(&result);
-    if(resulttm == NULL) {
-        fprintf(stderr, "Error getting localtime.\n");
-        exit(1);
-    }
-    if(!strftime(buf, len-1, "%b %d" _BSEP "%H:%M:%S", resulttm)) {
-        fprintf(stderr, "strftime is 0.\n");
-    }
-}
-
 
 struct BatteryInfo getbattery() {
     struct BatteryInfo info;
@@ -572,34 +560,6 @@ struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
     return last;
 }
 
-float getloadavg_min() {
-    double tmp = 0;
-    if (getloadavg(&tmp,1) == -1) {
-        return 0;
-    }
-    return (float)tmp;
-}
-
-void appendNetInfo(char * status, float speed, int up) {
-    int megabytes = 0;
-    char tmp[15] = "";
-    speed /= 1024;
-    if (speed >= 1024) {
-        speed /= 1024;
-        megabytes = 1;
-    }
-    if (speed >= 1000) {
-        speed = truncf(speed);
-    } else {
-        speed = truncf(10.*speed)/10;
-    }
-    if (megabytes) {
-        sprintf(status + strlen(status), "%s% 2.1fM", (up ? NET_UP : NET_DOWN), speed );
-    } else {
-        sprintf(status + strlen(status), "%s% 5.0f", (up ? NET_UP : NET_DOWN), speed );
-    }
-}
-
 struct Temperature gettemp(int n) {
     struct Temperature ret;
     char tmp[ strlen("/sys/devices/platform/coretemp.0/temp%d_crit_alarm") ];
@@ -659,19 +619,54 @@ void add_end(char *status) {
     strcat(status, COL_RESET);
 }
 
+void add_networking_speed(char * status, float speed, int up, int hideIfZero) {
+    int megabytes = 0;
+    speed /= 1024;
+    if (speed >= 1024) {
+        speed /= 1024;
+        megabytes = 1;
+    }
+    if (speed >= 1000) {
+        speed = truncf(speed);
+    } else {
+        speed = truncf(10.*speed)/10;
+    }
+    if (speed) {
+        SEP(status);
+        if (megabytes) {
+            sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-2.1f" COL_UNIT "M" COL_NORMAL, (up ? NET_UP : NET_DOWN), speed );
+        } else {
+            sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-5.0f", (up ? NET_UP : NET_DOWN), speed );
+        }
+    } else {
+        if (hideIfZero) {
+        } else {
+            SEP(status);
+            strcat(status, "      ");
+        }
+    }
+}
 char *add_networking_ip(char *status, char *ip) {
     if (ip != NULL) {
         if (strncmp(ip, "172.17.1.", strlen("172.17.1.")) == 0) {
-            strcat(status, "172..");
+            strcat(status, COL_IP "172.." COL_NORMAL);
             strcat(status, ip + strlen("172.17.1."));
         } else if (strncmp(ip, "192.168.1.", strlen("192.168.1.")) == 0) {
-            strcat(status, "192..");
+            strcat(status, COL_IP "192.." COL_NORMAL);
             strcat(status, ip + strlen("192.168.1."));
         } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
-            strcat(status, "10..");
+            strcat(status, COL_IP "10.." COL_NORMAL);
             strcat(status, ip + strlen("10.10.1."));
         } else {
-            strcat(status, ip);
+            const char *ldot = rindex(ip, '.');
+            if (ldot != NULL) {
+                strcat(status, COL_IP);
+                strncat(status, ip, (ldot - ip) + 1);
+                strcat(status, COL_NORMAL);
+                strcat(status, ldot + 1);
+            } else {
+                strcat(status, ip);
+            }
         }
         free(ip);
         ip = NULL;
@@ -680,7 +675,7 @@ char *add_networking_ip(char *status, char *ip) {
 }
 void add_networking(char *status) {
     static struct NetSpeed netspeed;
-    netspeed = getnetspeed(netspeed, 1);
+    netspeed = getnetspeed(netspeed, SLEEP_TIME);
     static int first = 1;
 
     int wired = 0;
@@ -690,6 +685,12 @@ void add_networking(char *status) {
     char essid[IW_ESSID_MAX_SIZE + 1];
     float wifi_qual;
     static int wifi_skfd;
+
+    if (status == NULL) {
+        wireless_close(wifi_skfd);
+        first = 1;
+        return;
+    }
 
     if (first) {
         wifi_skfd = wireless_init();
@@ -711,52 +712,51 @@ void add_networking(char *status) {
     }
 
     START(status);
-
+    if (bonded) {
+        strcat(status, COL_DESC "BOND " COL_NORMAL);
+        add_networking_ip(status, getip(BONDED_DEV));
+        strcat(status, " ");
+    }
 
     if (wireless) {
-        wifi_qual = getwireless_strength(wifi_skfd);
-        if (wifi_qual <= 0.33) {
-            strcat(status, WIFI_33 " ");
-        } else if (wifi_qual <= 0.66) {
-            strcat(status, WIFI_66 " ");
-        } else {
-            strcat(status, WIFI_100 " ");
-        }
-        strcat(status, essid);
         if (!bonded) {
-            strcat(status, " ");
+            strcat(status, COL_DESC "WIFI " COL_NORMAL);
+        }
+        wifi_qual = getwireless_strength(wifi_skfd);
+        int len = strlen(essid);
+        strcat(status, "\033[38;5;086m");
+        for (int i = 0; i < len; i ++) {
+            if (i > (int)((float)len * wifi_qual)) {
+                strcat(status, COL_NORMAL);
+            }
+            strncat(status, &essid[i], 1);
+        }
+        strcat(status, COL_NORMAL);
+        if (!bonded) {
+            strcat(status, COL_IP "/" COL_NORMAL);
             add_networking_ip(status, getip(WIRELESS_DEV));
         }
-        SEP(status);
-        appendNetInfo(status, !first * netspeed.wirelessDown, 0);
-        SEP(status);
-        appendNetInfo(status, !first * netspeed.wirelessUp, 1);
-        if (bonded) {
+        add_networking_speed(status, !first * netspeed.wirelessDown, 0, (bonded && wired));
+        add_networking_speed(status, !first * netspeed.wirelessUp, 1, (bonded && wired));
+        if (bonded && wired) {
             // Only need a sep (bonded, both are connected
-            SEP(status);
+            strcat(status, " ");
+            strcat(status, COL_SEP "|" COL_NORMAL);
         } else if (wired) {
             END(status);
             START(status);
-        }
-    }
-
-    if (bonded) {
-        add_networking_ip(status, getip(BONDED_DEV));
-        if (wired) {
-            SEP(status);
+            strcat(status, COL_DESC "WIRED " COL_NORMAL);
         }
     }
 
     if (wired) {
-        strcat(status, WIRED);
         if (!bonded) {
-            strcat(status, " ");
+            strcat(status, COL_DESC "WIRED" COL_IP "/" COL_NORMAL);
             add_networking_ip(status, getip(WIRED_DEV));
+            strcat(status, " " COL_NORMAL);
         }
-        add_sep(status);
-        appendNetInfo(status, !first * netspeed.wiredDown, 0);
-        add_sep(status);
-        appendNetInfo(status, !first * netspeed.wiredUp, 1);
+        add_networking_speed(status, !first * netspeed.wiredDown, 0, 0);
+        add_networking_speed(status, !first * netspeed.wiredUp, 1, 0);
     }
 
     END(status);
@@ -768,6 +768,12 @@ void add_volume(char *status) {
     static struct pulseaudio_t pulse;
     static int pulseready = -1;
     int vol = -1;
+    if (status == NULL) {
+        if (pulseready > 0) {
+            pulse_deinit(&pulse);
+            pulseready = -1;
+        }
+    }
     /* initialize pulse */
     if (pulseready == -1) {
         if (pulse_init(&pulse) == 0) {
@@ -779,6 +785,7 @@ void add_volume(char *status) {
 
     /*add_start(status, COL_WARNING_BG(BG), COL_WARNING);*/
     START(status);
+    strcat(status, COL_DESC "VOL" COL_NORMAL);
 
     if (pulseready > 0) {
         vol = get_default_sink_volume(&pulse);
@@ -787,9 +794,9 @@ void add_volume(char *status) {
             pulse_deinit(&pulse);
             pulseready = 0;
         } else if (vol == -1) {
-            strcat(status, VOL_MUTE);
+            /*strcat(status, "  M ");*/
         } else {
-            sprintf(status + strlen(status), VOL_UNMUTE "% 3d", vol);
+            sprintf(status + strlen(status), "% 3d" COL_UNIT "%%" COL_NORMAL, vol);
         }
     } else {
         if (pulseready == 0) {
@@ -801,13 +808,13 @@ void add_volume(char *status) {
         }
         switch (toggle3) {
             case 0:
-                strcat(status, VOL_MUTE);
+                strcat(status, " -");
                 break;
             case 1:
-                strcat(status, VOL_UNMUTE);
+                strcat(status, " |");
                 break;
             case 2:
-                strcat(status, STATE_UNKNOWN);
+                strcat(status, " +");
                 break;
         }
     }
@@ -818,73 +825,129 @@ void add_screenlocker(char *status) {
     if (pidof("xautolock") == -1) {
         // xautolock NOT running
         START(status);
-        strcat(status, XAUTOLOCK);
+        strcat(status, "[X]");
         END(status);
     }
 }
 
 void add_ram(char *status) {
     int ram = getram();
-    if (ram > 7450) {
-        START_CRIT(status);
-    } else if (ram > 6700) {
-        START_WARN(status);
-    } else {
-        START(status);
+    START(status);
+    strcat(status, COL_DESC "RAM" COL_NORMAL " ");
+    if (ram > 7400) {
+        switch (toggle) {
+            case 0:
+                strcat(status, COL_CRITICAL);
+                break;
+            case 1:
+                strcat(status, COL_WARNING);
+                break;
+        }
+    } else if (ram > 7000) {
+        strcat(status, COL_CRITICAL);
+    } else if (ram > 6300) {
+        strcat(status, COL_WARNING);
     }
-    sprintf(status + strlen(status), RAM "%dM", ram);
+    sprintf(status + strlen(status), "%d" COL_UNIT "M" COL_NORMAL, ram);
     END(status);
 }
 
 void add_battery(char *status) {
     struct BatteryInfo battinfo = getbattery();
+    const char *col = COL_NORMAL;
 
-    if (!battinfo.ac || battinfo.status == BattCharging) {
-        if (battinfo.percent > 20) {
-            START(status);
-        } else if (battinfo.percent > 11) {
-            START_WARN(status);
-        } else {
-            if (battinfo.percent <= 5) {
-                if (toggle) {
-                    START_CRIT(status);
-                } else {
-                    START(status);
-                }
-            } else {
-                START_CRIT(status);
-            }
-        }
+    START(status);
+    strcat(status, COL_DESC "BAT" COL_NORMAL);
+    if (battinfo.percent > 90) {
+        col = "\x1b[38;5;046m";
+    } else if (battinfo.percent > 80) {
+        col = "\x1b[38;5;047m";
+    } else if (battinfo.percent > 70) {
+        col = "\x1b[38;5;084m";
+    } else if (battinfo.percent > 60) {
+        col = "\x1b[38;5;120m";
+    } else if (battinfo.percent > 50) {
+        col = "\x1b[38;5;157m";
+    } else if (battinfo.percent > 40) {
+        col = "\x1b[38;5;156m";
+    } else if (battinfo.percent > 30) {
+        col = "\x1b[38;5;155m";
+    } else if (battinfo.percent > 20) {
+        col = "\x1b[38;5;154m";
+    } else if (battinfo.percent > 15) {
+        col = COL_WARNING;
+    } else if (battinfo.percent > 14) {
+        col = "\x1b[38;5;220m";
+    } else if (battinfo.percent > 13) {
+        col = "\x1b[38;5;214m";
+    } else if (battinfo.percent > 12) {
+        col = "\x1b[38;5;208m";
+    } else if (battinfo.percent > 11) {
+        col = "\x1b[38;5;202m";
     } else {
-        START(status);
+        if (battinfo.percent <= 5) {
+            switch (toggle3) {
+                case 0:
+                    col = COL_WARNING;
+                    break;
+                case 1:
+                    col = COL_CRITICAL;
+                    break;
+                case 2:
+                    col = "\x1b[38;5;208m";
+                    break;
+            }
+        } else {
+            col = COL_CRITICAL;
+        }
     }
 
     // When charging, display that symbol; when fully charged, and plugged in, display that symbol (never both at the same time)
     if (battinfo.status == BattCharging) {
-        strcat(status, BATT_CHARGING);
+        strcat(status, " ");
+        strcat(status, col);
+        /*static const char *chars[] = {".  ", "|  ", "|. ", "|| ", "||.", "|||"};*/
+        /*static const char *chars[] = {".  ", ".. ", "...", "..|", ".||", "|||"};*/
+        static const char *chars[] = {".|:", ":.|", "|:.", ".|:", ":.|", "|:."};
+        switch ((toggle3 << 1) + toggle) {
+            case 5:
+                strcat(status, chars[0]);
+                break;
+            case 0:
+                strcat(status, chars[1]);
+                break;
+            case 3:
+                strcat(status, chars[2]);
+                break;
+            case 4:
+                strcat(status, chars[3]);
+                break;
+            case 1:
+                strcat(status, chars[4]);
+                break;
+            case 2:
+                strcat(status, chars[5]);
+                break;
+        }
     } else if (battinfo.ac) {
-        strcat(status, BATT_AC);
+        strcat(status, col);
+        strcat(status, " |||");
     }
     if (!battinfo.ac || battinfo.status == BattCharging) {
-        if (battinfo.percent < 25) {
-            strcat(status, BATT_25);
-        } else if (battinfo.percent < 50) {
-            strcat(status, BATT_50);
-        } else if (battinfo.percent < 75) {
-            strcat(status, BATT_75);
-        } else {
-            strcat(status, BATT_100);
-        }
-        SEP(status);
-        sprintf(status + strlen(status), "%i%%", battinfo.percent);
-        SEP(status);
-        sprintf(status + strlen(status), "%02d:%02d:%02d", battinfo.hours, battinfo.minutes, battinfo.seconds );
+        strcat(status, " ");
+        sprintf(status + strlen(status),
+                "%s%i" COL_UNIT "%%%s"
+                " "
+                "%02d" COL_SEP ":%s%02d" COL_SEP ":%s%02d"
+                , col, battinfo.percent, col,
+                battinfo.hours, col, battinfo.minutes, col, battinfo.seconds);
     }
     END(status);
 }
 
 void add_temperature(char *status) {
     int color = 0;
+    const char *col = COL_NORMAL;
     const int max_i = 3;
     struct Temperature temp[max_i];
     for (int i = 1; i <= max_i; i ++) {
@@ -896,24 +959,25 @@ void add_temperature(char *status) {
         }
     }
 
+    START(status);
     switch (color) {
         case 0:
-            START(status);
+            col = COL_NORMAL;
             break;
         case 1:
-            START_WARN(status);
+            col = COL_WARNING;
             break;
         case 2:
-            START_CRIT(status);
+            col = COL_CRITICAL;
             break;
     }
 
     for (int i = 0; i < max_i; i ++) {
         if ((i - 1) >= 0) {
-            SEP(status);
+            strcat(status, " ");
         }
 
-        sprintf(status + strlen(status), "%.0fC", temp[i].temp);
+        sprintf(status + strlen(status), "%s%.0f" COL_UNIT "C%s", col, temp[i].temp, col);
     }
 
     END(status);
@@ -931,26 +995,59 @@ void add_datetime(char *status) {
     }
     START(status);
 
+    strcat(status, COL_IP);
     strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%b %d", resulttm);
     strcat(status, datetime);
 
-    SEP(status);
+    strcat(status, COL_SEP " | " COL_NORMAL);
 
-    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%H:%M:%S", resulttm);
+    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%H", resulttm);
+    strcat(status, datetime);
+    strcat(status, COL_SEP ":" COL_NORMAL);
+
+    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%M", resulttm);
+    strcat(status, datetime);
+    strcat(status, COL_SEP ":" COL_NORMAL);
+
+    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%S", resulttm);
     strcat(status, datetime);
 
     END(status);
 }
 
-int main(int argc, char * argv[]) {
+void add_cpufreq(char *status) {
     int freq0, freq1, freq2, freq3, freqavg;
+    static int count = 0;
+    if (count > 1) {
+        return;
+    }
+    freq0 = getfreqi(0);
+    freq1 = getfreqi(1);
+    freq2 = getfreqi(2);
+    freq3 = getfreqi(3);
+    freqavg = (freq0+freq1+freq2+freq3)/4;
+    if (freqavg == 0) {
+        count ++;
+    }
+    START(status);
+    strcat(status, COL_DESC "FREQ " COL_NORMAL);
+    sprintf(status + strlen(status), "%d", freqavg);
+    END(status);
+}
+void add_loadavg(char *status) {
+    double tmp[3] = {0};
+    if (getloadavg(tmp,3) == -1) {
+        return;
+    }
+
+    START(status);
+    strcat(status, COL_DESC "LOAD " COL_NORMAL);
+    sprintf(status + strlen(status), "%.2f %.2f", tmp[0], tmp[1]);
+    END(status);
+}
+
+int main(int argc, char * argv[]) {
     char status[STATUS_LEN];
-
-    char tmp[100] = "";
-    char tmp1[100] = "";
-
-    //    char _net[IW_ESSID_MAX_SIZE + 1 + 10] = ""; // size of essid + icon + wired
-
     int runonce = 0;
 
     if (argc >= 2) {
@@ -960,7 +1057,7 @@ int main(int argc, char * argv[]) {
     }
 
 
-    // TODO: Screenlocking, Touchpad
+    // TODO: Touchpad
     //
 
     if (!runonce) {
@@ -969,8 +1066,6 @@ int main(int argc, char * argv[]) {
             return 1;
         }
     }
-
-
 
     for ( ; ; sleep(1)) {
 
@@ -985,62 +1080,30 @@ int main(int argc, char * argv[]) {
         add_screenlocker(status);
         add_battery(status);
         add_temperature(status);
+        add_loadavg(status);
+        add_cpufreq(status);
         add_datetime(status);
 
-        /*
+        if (runonce) {
+            break;
+        }
 
-        [>
-        freq0 = getfreqi(0);
-        freq1 = getfreqi(1);
-        freq2 = getfreqi(2);
-        freq3 = getfreqi(3);
-        freqavg = (freq0+freq1+freq2+freq3)/4;
-        tmp[0] = '\0';
-        <]
-        //cpustat = getcpuinfo(cpustat);
-        //sprintf(tmp, "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%4i" _BSEP "%3i%%", freq0, freq1, freq2, freq3, cpustat.usage);
-        [>
-        sprintf(tmp, "%4i", freqavg);
-        appendStatuss(status, tmp, COLOR_NORMAL, 1, 0, 0);
-        <]
-//        appendStatusi(status, freqavg, 0, 0, "", "", 1, 0, 0);
-        //appendStatusf(status, getloadavg_min(), 0, 4, "", "", 0, 1, 1);
-        appendStatusf(status, getloadavg_min(), 0, 4, "", "", 1, 1, 0);
-
-//         sprintf(tmp, "%4i" _BSEP "%.2f", freqavg, getloadavg_min());
-//         appendStatuss(status, tmp, COLOR_NORMAL, 1, 1, 0);
-
-
-        /*if (runonce) {*/
-            /*break;*/
-        /*} else {*/
-            setstatus(status);
-        /*}*/
-
-        // Reset variables from above
+        setstatus(status);
         status[0] = '\0';
-        tmp[0] = '\0';
-        tmp1[0] = '\0';
-
-
     }
 
-    if (dpy) {
-        XCloseDisplay(dpy);
+    if (!runonce) {
+        if (dpy) {
+            XCloseDisplay(dpy);
+        }
     }
 
     if (runonce) {
-        printf("%s%c", status, 0);
+        printf("%s\n", status);
     }
 
-    // TODO: pass these NULL to signal a close
-
-    /*wireless_close(wifi_skfd);*/
-
-    /*if (pulseready) {*/
-        /*[> shut down <]*/
-        /*pulse_deinit(&pulse);*/
-    /*}*/
+    add_networking(NULL);
+    add_volume(NULL);
 
     return 0;
 }
