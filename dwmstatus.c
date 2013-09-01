@@ -111,7 +111,7 @@
 
 #define STATUS_LEN 8192
 
-#define SLEEP_TIME 1
+#define SLEEP_TIME 1.0
 
 static Display *dpy;
 
@@ -1292,7 +1292,7 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    for ( ; ; sleep(1)) {
+    for ( ; ; usleep(SLEEP_TIME*1e6)) {
 
         toggle = ! toggle;
         toggle3 = (toggle3 + 1) % 3;
