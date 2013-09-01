@@ -779,6 +779,7 @@ void add_volume(char *status) {
             pulse_deinit(&pulse);
             pulseready = -1;
         }
+        return;
     }
     /* initialize pulse */
     if (pulseready == -1) {
