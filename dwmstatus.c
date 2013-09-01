@@ -33,6 +33,8 @@
 #include <linux/if.h>
 #include <iwlib.h>
 
+#include <mpd/client.h>
+
 #define _GNU_SOURCE
 #include <pulse/pulseaudio.h>
 
@@ -1046,6 +1048,87 @@ void add_loadavg(char *status) {
     END(status);
 }
 
+void add_mpdsong(char *status) {
+	static struct mpd_connection *conn = NULL;
+    struct mpd_status *mpdstatus = NULL;
+    enum mpd_state state;
+    struct mpd_song *song;
+    const char *title, *artist;
+
+    if (conn == NULL) {
+        conn = mpd_connection_new(NULL, 0, 0);
+        if (conn == NULL) {
+            fputs("Out of memory\n", stderr);
+            exit(1);
+        }
+        if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) {
+            mpd_connection_free(conn);
+            conn = NULL;
+            return;
+        }
+    }
+
+    if (conn != NULL) {
+        mpdstatus = mpd_run_status(conn);
+        if (mpdstatus == NULL) {
+            return;
+        }
+        state = mpd_status_get_state(mpdstatus);
+        if(state == MPD_STATE_STOP || state == MPD_STATE_UNKNOWN){
+            mpd_status_free(mpdstatus);
+            return;
+        }
+
+        if (state == MPD_STATE_PLAY || state == MPD_STATE_PAUSE) {
+            song = mpd_run_current_song(conn);
+
+            if(song == NULL){
+                mpd_status_free(mpdstatus);
+            }
+            title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
+            artist = mpd_song_get_tag(song, MPD_TAG_ARTIST, 0);
+            if (title != NULL) {
+                START(status);
+                if (state == MPD_STATE_PLAY) {
+                    strcat(status, COL_DESC "PLAYING " COL_NORMAL);
+                } else {
+                    strcat(status, COL_DESC "PAUSED " COL_NORMAL);
+                }
+
+                sprintf(status + strlen(status), COL_DESC "[" "\x1b[38;5;147m" "%i" COL_SEP "/" "\x1b[38;5;147m" "%u" COL_DESC "]" COL_NORMAL " ", mpd_status_get_song_pos(mpdstatus) + 1, mpd_status_get_queue_length(mpdstatus));
+
+                strcat(status, "\x1b[38;5;121m");
+                strcat(status, title);
+                strcat(status, COL_NORMAL);
+
+                strcat(status, COL_DESC " | " COL_NORMAL);
+
+                strcat(status, "\x1b[38;5;103m");
+                strcat(status, artist);
+                strcat(status, COL_NORMAL);
+
+                strcat(status, COL_DESC " | " COL_NORMAL);
+
+                sprintf(status + strlen(status),
+                        "\x1b[38;5;083m" "%i" COL_SEP ":"
+                        "\x1b[38;5;083m" "%02i" COL_SEP "/"
+                        "\x1b[38;5;083m" "%i" COL_SEP ":"
+                        "\x1b[38;5;083m" "%02i" COL_NORMAL,
+                        mpd_status_get_elapsed_time(mpdstatus) / 60,
+                        mpd_status_get_elapsed_time(mpdstatus) % 60,
+                        mpd_status_get_total_time(mpdstatus) / 60,
+                        mpd_status_get_total_time(mpdstatus) % 60);
+
+                END(status);
+            }
+
+            mpd_song_free(song);
+            mpd_status_free(mpdstatus);
+
+        }
+    }
+}
+
 int main(int argc, char * argv[]) {
     char status[STATUS_LEN];
     int runonce = 0;
@@ -1083,6 +1166,10 @@ int main(int argc, char * argv[]) {
         add_loadavg(status);
         add_cpufreq(status);
         add_datetime(status);
+
+        strcat(status, "\1"); /* Switch to the bottom bar */
+
+        add_mpdsong(status);
 
         if (runonce) {
             break;

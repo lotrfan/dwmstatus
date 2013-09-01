@@ -12,7 +12,7 @@ MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include
-LIBS = -L/usr/lib -lc -lX11 -liw -lm -lpulse
+LIBS = -L/usr/lib -lc -lX11 -liw -lm -lpulse -lmpdclient
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
