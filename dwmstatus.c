@@ -1183,34 +1183,40 @@ void add_uptime(char *status) {
 
 void add_dropbox(char *status) {
     static struct sockaddr_un sock;
-    static int sockid;
+    static int sockfd;
     static int first = 1;
 
     if (DROPBOX_SOCKET != NULL) {
         if (first) {
-            if ((sockid = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+            if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
                 perror("add_dropbox");
                 return;
             }
             sock.sun_family = AF_UNIX;
             strcpy(sock.sun_path, DROPBOX_SOCKET);
-            if (connect(sockid, (struct sockaddr *)&sock, sizeof(sock)) == -1) {
+            if (connect(sockfd, (struct sockaddr *)&sock, sizeof(sock)) == -1) {
                 perror("add_dropbox");
-                close(sockid);
+                close(sockfd);
                 return;
             }
+
+            struct timeval tv;
+            tv.tv_sec = 1;  /* 30 Secs Timeout */
+            tv.tv_usec = 0;  // Not init'ing this can cause strange errors
+            setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,sizeof(struct timeval));
+
             first = 0;
         }
 
         if (!first) {
             char buf[512];
             strcpy(buf, "get_dropbox_status\ndone\n");
-            if (send(sockid, buf, strlen(buf), 0) == -1) {
+            if (send(sockfd, buf, strlen(buf), 0) == -1) {
                 perror("add_dropbox");
                 return;
             }
             int t;
-            if ((t=recv(sockid, buf, sizeof(buf), 0)) > 0) {
+            if ((t = recv(sockfd, buf, sizeof(buf), 0)) > 0) {
                 /*buf[t] = '\0';*/
                 char *tmp = buf;
                 if (strncmp(tmp, "ok\nstatus", strlen("ok\nstatus")) == 0) {
@@ -1229,20 +1235,22 @@ void add_dropbox(char *status) {
                         char *idx = tmp;
                         int f = 1;
                         char *newln = index(idx, '\n');
-                        while (idx != NULL) {
+                        while (idx != NULL && f < 5) {
                             char *tab = index(idx, '\t');
-                            if (tab > newln) {
+                            if (tab > newln || tab == NULL) {
                                 tab = newln;
                             }
                             if (tab != NULL && (tab - idx)) {
-                                if (!f) {
+                                if (f > 1) {
                                     strcat(status, " - ");
                                 }
+                                f ++;
                                 strncat(status, idx, tab - idx);
-                                f = 0;
                                 idx = tab + 1;
+                            } else {
+                                break;
                             }
-                            if (tab == newln) {
+                            if (tab >= newln) {
                                 break;
                             }
                         }
@@ -1250,6 +1258,11 @@ void add_dropbox(char *status) {
                     END(status);
                 }
             } else {
+                if (t == 0) {
+                    close(sockfd);
+                    sockfd = 0;
+                    first = 1;
+                }
                 return;
             }
 
