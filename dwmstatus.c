@@ -31,6 +31,7 @@
 
 #include <sys/socket.h>
 #include <linux/socket.h>
+#include <linux/un.h>
 #include <linux/wireless.h>
 #include <linux/if.h>
 #include <iwlib.h>
@@ -43,6 +44,7 @@
 #define WIRELESS_DEV "wlp2s0"
 #define WIRED_DEV "enp10s0"
 #define BONDED_DEV "bond0"
+#define DROPBOX_SOCKET "/home/jeffrey/.dropbox/command_socket" /* Set to NULL to "remove" dropbox reporting */
 
 #define COLOR_NORMAL 0
 #define COLOR_CRITICAL 5
@@ -1178,6 +1180,83 @@ void add_uptime(char *status) {
     }
 }
 
+void add_dropbox(char *status) {
+    static struct sockaddr_un sock;
+    static int sockid;
+    static int first = 1;
+
+    if (DROPBOX_SOCKET != NULL) {
+        if (first) {
+            if ((sockid = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
+                perror("add_dropbox");
+                return;
+            }
+            sock.sun_family = AF_UNIX;
+            strcpy(sock.sun_path, DROPBOX_SOCKET);
+            if (connect(sockid, (struct sockaddr *)&sock, sizeof(sock)) == -1) {
+                perror("add_dropbox");
+                close(sockid);
+                return;
+            }
+            first = 0;
+        }
+
+        if (!first) {
+            char buf[512];
+            strcpy(buf, "get_dropbox_status\ndone\n");
+            if (send(sockid, buf, strlen(buf), 0) == -1) {
+                perror("add_dropbox");
+                return;
+            }
+            int t;
+            if ((t=recv(sockid, buf, sizeof(buf), 0)) > 0) {
+                /*buf[t] = '\0';*/
+                char *tmp = buf;
+                if (strncmp(tmp, "ok\nstatus", strlen("ok\nstatus")) == 0) {
+                    tmp += 3 + strlen("status");
+                    while (isspace(*tmp)) {
+                        tmp++;
+                    }
+                    START(status);
+                    strcat(status, COL_DESC "DROPBOX ");
+                    if (strncmp(tmp, "done", strlen("done")) == 0) {
+                        strcat(status, COL_IP);
+                        strcat(status, "Idle");
+                    } else {
+                        strcat(status, "\x1b[38;5;039m");
+                        // They're ok...
+                        char *idx = tmp;
+                        int f = 1;
+                        char *newln = index(idx, '\n');
+                        while (idx != NULL) {
+                            char *tab = index(idx, '\t');
+                            if (tab > newln) {
+                                tab = newln;
+                            }
+                            if (tab != NULL && (tab - idx)) {
+                                if (!f) {
+                                    strcat(status, " - ");
+                                }
+                                strncat(status, idx, tab - idx);
+                                f = 0;
+                                idx = tab + 1;
+                            }
+                            if (tab == newln) {
+                                break;
+                            }
+                        }
+                    }
+                    END(status);
+                }
+            } else {
+                return;
+            }
+
+        }
+
+    }
+}
+
 int main(int argc, char * argv[]) {
     char status[STATUS_LEN];
     int runonce = 0;
@@ -1221,6 +1300,7 @@ int main(int argc, char * argv[]) {
         add_kernelinfo(status);
         add_uptime(status);
         add_mpdsong(status);
+        add_dropbox(status);
 
         if (runonce) {
             break;
