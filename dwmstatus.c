@@ -1191,8 +1191,8 @@ int main(int argc, char * argv[]) {
 
         strcat(status, "\1"); /* Switch to the bottom bar */
 
-        add_mpdsong(status);
         add_kernelinfo(status);
+        add_mpdsong(status);
 
         if (runonce) {
             break;
