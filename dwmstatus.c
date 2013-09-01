@@ -27,6 +27,8 @@
 #include <netdb.h>
 #include <ifaddrs.h>
 
+#include <sys/utsname.h>
+
 #include <sys/socket.h>
 #include <linux/socket.h>
 #include <linux/wireless.h>
@@ -1129,6 +1131,26 @@ void add_mpdsong(char *status) {
     }
 }
 
+void add_kernelinfo(char *status) {
+    static struct utsname uts;
+    static int first = 1;
+    if (first) {
+        if (0 == uname(&uts)) {
+            first = 0;
+        }
+    }
+    if (!first) { /* Only need to get info once, as the runinng kernel is unlikely to change */
+        START(status);
+        strcat(status, COL_DESC);
+        strcat(status, uts.sysname);
+        strcat(status, " ");
+        strcat(status, COL_IP);
+        strcat(status, uts.release);
+        strcat(status, COL_NORMAL);
+        END(status);
+    }
+}
+
 int main(int argc, char * argv[]) {
     char status[STATUS_LEN];
     int runonce = 0;
@@ -1170,6 +1192,7 @@ int main(int argc, char * argv[]) {
         strcat(status, "\1"); /* Switch to the bottom bar */
 
         add_mpdsong(status);
+        add_kernelinfo(status);
 
         if (runonce) {
             break;
