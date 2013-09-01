@@ -1151,6 +1151,33 @@ void add_kernelinfo(char *status) {
     }
 }
 
+void add_uptime(char *status) {
+    static struct sysinfo s_info;
+    unsigned long sec, min, hour, day;
+    if (0 == sysinfo(&s_info)) { /* Only need to get info once, as the runinng kernel is unlikely to change */
+        START(status);
+        strcat(status, COL_DESC "UPTIME ");
+
+        sec = s_info.uptime;
+        min = sec / 60;
+        sec %= 60;
+        hour = min / 60;
+        min %= 60;
+        day = hour / 24;
+        hour %= 24;
+
+        if (day > 0) {
+            sprintf(status + strlen(status), COL_NORMAL "%ld" COL_UNIT "d ", day);
+        }
+        if (day > 0 || hour > 0) {
+            sprintf(status + strlen(status), COL_NORMAL "%ld" COL_UNIT "h ", hour);
+        }
+        sprintf(status + strlen(status), COL_NORMAL "%2ld" COL_UNIT "m ", min);
+
+        END(status);
+    }
+}
+
 int main(int argc, char * argv[]) {
     char status[STATUS_LEN];
     int runonce = 0;
@@ -1192,6 +1219,7 @@ int main(int argc, char * argv[]) {
         strcat(status, "\1"); /* Switch to the bottom bar */
 
         add_kernelinfo(status);
+        add_uptime(status);
         add_mpdsong(status);
 
         if (runonce) {
