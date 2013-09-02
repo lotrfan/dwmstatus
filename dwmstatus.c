@@ -117,6 +117,9 @@
 #define SYM_MUSIC_PLAY      "\uE09A"
 #define SYM_MUSIC_PAUSE     "\uE09B"
 #define SYM_NET_WIRED       "\uE19C"
+#define SYM_PACMAN          "\uE00F" //"\uE00F" // or E0A0
+#define SYM_PACMAN_GHOST    "\uE0C8"
+#define SYM_PACMAN_FOOD     "\uE190"
 
 #define NET_UP SYM_ARROW_UP
 #define NET_DOWN SYM_ARROW_DOWN
@@ -1297,6 +1300,53 @@ void add_dropbox(char *status) {
     }
 }
 
+void add_pacman(char *status) {
+    static int pac_toggle = 0, flip = 0;
+    const int max = 10;
+    int i;
+    START(status);
+    strcat(status, COL_NORMAL COL_NORMAL_BG("3"));
+    for (i = 0; i < max; i ++) {
+        if (0) {
+            if (i < pac_toggle) {
+                strcat(status, SYM_PACMAN);
+            } else if (i == pac_toggle) {
+                strcat(status, COL_NORMAL);
+                strcat(status, SYM_PACMAN);
+            } else {
+                strcat(status, SYM_PACMAN_FOOD);
+            }
+        } else {
+            if (i == pac_toggle && i == ((max-1) - pac_toggle)) {
+                strcat(status, "\x1b[38;5;89m" SYM_PACMAN_GHOST COL_NORMAL_BG("3"));
+            } else if (i == pac_toggle) {
+                if (flip) {
+                    strcat(status, "\x1b[38;5;38m" SYM_PACMAN_GHOST COL_NORMAL_BG("3"));
+                } else {
+                    strcat(status, "\x1b[38;5;178m" SYM_PACMAN_GHOST COL_NORMAL_BG("3"));
+                }
+            } else if (i == ((max-1) - pac_toggle)) {
+                if (flip) {
+                    strcat(status, "\x1b[38;5;178m" SYM_PACMAN_GHOST COL_NORMAL_BG("3"));
+                } else {
+                    strcat(status, "\x1b[38;5;38m" SYM_PACMAN_GHOST COL_NORMAL_BG("3"));
+                }
+            } else if ((i > pac_toggle && i < ((max-1) - pac_toggle))
+                    || (i < pac_toggle && i > ((max-1) - pac_toggle))) {
+                strcat(status, COL_DESC SYM_PACMAN_FOOD COL_NORMAL_BG("4") COL_NORMAL_BG("3"));
+            } else {
+                strcat(status, SYM_PACMAN_GHOST);
+            }
+        }
+    }
+    pac_toggle ++;
+    pac_toggle %= (max-1);
+    if (pac_toggle == 0) {
+        flip = !flip;
+    }
+    END(status);
+}
+
 int main(int argc, char * argv[]) {
     char status[STATUS_LEN];
     int runonce = 0;
@@ -1336,6 +1386,8 @@ int main(int argc, char * argv[]) {
         add_datetime(status);
 
         strcat(status, "\1"); /* Switch to the bottom bar */
+
+        add_pacman(status);
 
         add_kernelinfo(status);
         add_uptime(status);
