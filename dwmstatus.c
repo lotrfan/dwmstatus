@@ -1185,6 +1185,7 @@ void add_dropbox(char *status) {
     static struct sockaddr_un sock;
     static int sockfd;
     static int first = 1;
+    static int adding = 0;
 
     if (DROPBOX_SOCKET != NULL) {
         if (first) {
@@ -1256,12 +1257,18 @@ void add_dropbox(char *status) {
                         }
                     }
                     END(status);
+                    adding = 0; /* Reset on a successful run */
                 }
             } else {
                 if (t == 0) {
                     close(sockfd);
                     sockfd = 0;
                     first = 1;
+                }
+                if (adding == 0) {
+                    adding = 1;
+                    add_dropbox(status);
+                    adding = 0;
                 }
                 return;
             }
