@@ -1387,8 +1387,6 @@ int main(int argc, char * argv[]) {
 
         strcat(status, "\1"); /* Switch to the bottom bar */
 
-        add_pacman(status);
-
         add_kernelinfo(status);
         add_uptime(status);
         add_mpdsong(status);
