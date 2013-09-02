@@ -105,9 +105,22 @@
 /*#define BSEP _BSEP*/
 /*#define BEND _BSTART*/
 
-#define NET_UP "U"
-#define NET_DOWN "D"
-#define XAUTOLOCK ""
+#define SYM_ARCH            "\uE0A1"
+#define SYM_ARROW_UP        "\uE060"
+#define SYM_ARROW_DOWN      "\uE061"
+#define SYM_RAM             "\uE021"
+#define SYM_AC_FULL         "\uE041"
+#define SYM_AC              "\uE040"
+#define SYM_SPEAKER         "\uE04E"
+#define SYM_SPEAKER_MUTE    "\uE04F"
+#define SYM_MUSIC           "\uE05C"
+#define SYM_MUSIC_PLAY      "\uE09A"
+#define SYM_MUSIC_PAUSE     "\uE09B"
+#define SYM_NET_WIRED       "\uE19C"
+
+#define NET_UP SYM_ARROW_UP
+#define NET_DOWN SYM_ARROW_DOWN
+#define XAUTOLOCK "\uE027"
 
 #define STATUS_LEN 8192
 
@@ -648,7 +661,9 @@ void add_networking_speed(char * status, float speed, int up, int hideIfZero) {
         if (hideIfZero) {
         } else {
             SEP(status);
-            strcat(status, "      ");
+            strcat(status, COL_DESC);
+            strcat(status, (up ? NET_UP : NET_DOWN));
+            strcat(status, "     " COL_NORMAL);
         }
     }
 }
@@ -751,7 +766,7 @@ void add_networking(char *status) {
         } else if (wired) {
             END(status);
             START(status);
-            strcat(status, COL_DESC "WIRED " COL_NORMAL);
+            strcat(status, COL_DESC SYM_NET_WIRED " " COL_NORMAL);
         }
     }
 
@@ -792,7 +807,6 @@ void add_volume(char *status) {
 
     /*add_start(status, COL_WARNING_BG(BG), COL_WARNING);*/
     START(status);
-    strcat(status, COL_DESC "VOL" COL_NORMAL);
 
     if (pulseready > 0) {
         vol = get_default_sink_volume(&pulse);
@@ -801,11 +815,13 @@ void add_volume(char *status) {
             pulse_deinit(&pulse);
             pulseready = 0;
         } else if (vol == -1) {
-            /*strcat(status, "  M ");*/
+            strcat(status, COL_DESC SYM_SPEAKER_MUTE COL_NORMAL);
         } else {
+            strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL);
             sprintf(status + strlen(status), "% 3d" COL_UNIT "%%" COL_NORMAL, vol);
         }
     } else {
+        strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL);
         if (pulseready == 0) {
             /* initialize pulse */
             if (pulse_init(&pulse) == 0)
@@ -832,7 +848,7 @@ void add_screenlocker(char *status) {
     if (pidof("xautolock") == -1) {
         // xautolock NOT running
         START(status);
-        strcat(status, "[X]");
+        strcat(status, COL_WARNING XAUTOLOCK COL_NORMAL);
         END(status);
     }
 }
@@ -840,7 +856,7 @@ void add_screenlocker(char *status) {
 void add_ram(char *status) {
     int ram = getram();
     START(status);
-    strcat(status, COL_DESC "RAM" COL_NORMAL " ");
+    strcat(status, COL_DESC SYM_RAM COL_NORMAL " ");
     if (ram > 7400) {
         switch (toggle) {
             case 0:
@@ -1095,9 +1111,9 @@ void add_mpdsong(char *status) {
             if (title != NULL) {
                 START(status);
                 if (state == MPD_STATE_PLAY) {
-                    strcat(status, COL_DESC "PLAYING " COL_NORMAL);
+                    strcat(status, COL_DESC SYM_MUSIC_PLAY " " COL_NORMAL);
                 } else {
-                    strcat(status, COL_DESC "PAUSED " COL_NORMAL);
+                    strcat(status, COL_DESC SYM_MUSIC_PAUSE " " COL_NORMAL);
                 }
 
                 sprintf(status + strlen(status), COL_DESC "[" "\x1b[38;5;147m" "%i" COL_SEP "/" "\x1b[38;5;147m" "%u" COL_DESC "]" COL_NORMAL " ", mpd_status_get_song_pos(mpdstatus) + 1, mpd_status_get_queue_length(mpdstatus));
@@ -1144,6 +1160,9 @@ void add_kernelinfo(char *status) {
     }
     if (!first) { /* Only need to get info once, as the runinng kernel is unlikely to change */
         START(status);
+        strcat(status, "\x1b[38;5;027m");
+        strcat(status, SYM_ARCH);
+        strcat(status, " ");
         strcat(status, COL_DESC);
         strcat(status, uts.sysname);
         strcat(status, " ");
