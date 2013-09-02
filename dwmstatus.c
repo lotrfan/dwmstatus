@@ -1054,11 +1054,12 @@ void add_cpufreq(char *status) {
     freqavg = (freq0+freq1+freq2+freq3)/4;
     if (freqavg == 0) {
         count ++;
+    } else {
+        START(status);
+        strcat(status, COL_DESC "FREQ " COL_NORMAL);
+        sprintf(status + strlen(status), "%d", freqavg);
+        END(status);
     }
-    START(status);
-    strcat(status, COL_DESC "FREQ " COL_NORMAL);
-    sprintf(status + strlen(status), "%d", freqavg);
-    END(status);
 }
 void add_loadavg(char *status) {
     double tmp[3] = {0};
