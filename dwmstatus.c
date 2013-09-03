@@ -748,7 +748,7 @@ void add_networking(char *status) {
         }
         wifi_qual = getwireless_strength(wifi_skfd);
         int len = strlen(essid);
-        strcat(status, "\033[38;5;086m");
+        strcat(status, "\033[38;5;034m");
         for (int i = 0; i < len; i ++) {
             if (i > (int)((float)len * wifi_qual)) {
                 strcat(status, COL_NORMAL);
