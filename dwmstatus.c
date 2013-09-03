@@ -1078,7 +1078,7 @@ void add_mpdsong(char *status) {
     struct mpd_status *mpdstatus = NULL;
     enum mpd_state state;
     struct mpd_song *song;
-    const char *title, *artist;
+    const char *title, *artist, *album;
 
     if (conn == NULL) {
         conn = mpd_connection_new(NULL, 0, 0);
@@ -1112,6 +1112,7 @@ void add_mpdsong(char *status) {
             }
             title = mpd_song_get_tag(song, MPD_TAG_TITLE, 0);
             artist = mpd_song_get_tag(song, MPD_TAG_ARTIST, 0);
+            album = mpd_song_get_tag(song, MPD_TAG_ALBUM, 0);
             if (title != NULL) {
                 START(status);
                 if (state == MPD_STATE_PLAY) {
@@ -1124,9 +1125,11 @@ void add_mpdsong(char *status) {
 
                 strcat(status, "\x1b[38;5;121m");
                 strcat(status, title);
-                strcat(status, COL_NORMAL);
 
-                strcat(status, COL_DESC " | " COL_NORMAL);
+                strcat(status, COL_DESC " (");
+                strcat(status, "\x1b[38;5;063m");
+                strcat(status, album);
+                strcat(status, COL_DESC ") | ");
 
                 strcat(status, "\x1b[38;5;103m");
                 strcat(status, artist);
