@@ -534,6 +534,7 @@ struct BatteryInfo getbattery() {
     } else if (!strcasecmp(status, "full")) {
         info.status = BattFull;
         info.seconds = 0;
+        info.percent = 100;
         return info;
     } else {
         fprintf(stderr,"Unknown battery status: %s\n", status);
