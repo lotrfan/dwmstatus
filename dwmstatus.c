@@ -766,7 +766,7 @@ void add_networking(char *status) {
         if (bonded && wired) {
             // Only need a sep (bonded, both are connected
             strcat(status, " ");
-            strcat(status, COL_SEP "|" COL_NORMAL);
+            strcat(status, COL_SEP SYM_NET_WIRED COL_NORMAL);
         } else if (wired) {
             END(status);
             START(status);
