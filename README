@@ -1,0 +1,5 @@
+This is my dwmstatus "script", which I run on Arch Linux.
+
+Some credits:
+    * An old version of ponymix (https://github.com/falconindy/ponymix), upon which the pulseaudio code is (partially) based.
+    * The guys at suckless.org. The early versions of this were based on their (example) dwmstatus, although the resemblance is small now.
