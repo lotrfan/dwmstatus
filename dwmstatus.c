@@ -215,9 +215,18 @@ int get_default_sink_volume(struct pulseaudio_t *pulse) {
     return volume;
 }
 
+static void pulse_update_default_sink(struct pulseaudio_t *pulse) {
+    pa_operation *op;
+
+    free(pulse->default_sink);
+
+    op = pa_context_get_server_info(pulse->cxt, server_info_cb, pulse);
+    pulse_async_wait(pulse, op);
+    pa_operation_unref(op);
+}
+
 static int pulse_init(struct pulseaudio_t *pulse)
 {
-    pa_operation *op;
     enum pa_context_state state = PA_CONTEXT_CONNECTING;
 
     pulse->mainloop = pa_mainloop_new();
@@ -235,9 +244,7 @@ static int pulse_init(struct pulseaudio_t *pulse)
         return 1;
     }
 
-    op = pa_context_get_server_info(pulse->cxt, server_info_cb, pulse);
-    pulse_async_wait(pulse, op);
-    pa_operation_unref(op);
+    pulse_update_default_sink(pulse);
     return 0;
 }
 
@@ -813,6 +820,7 @@ void add_volume(char *status) {
     START(status);
 
     if (pulseready > 0) {
+        pulse_update_default_sink(&pulse);
         vol = get_default_sink_volume(&pulse);
         if (vol == -2) {
             /* Error connecting */
