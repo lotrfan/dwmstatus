@@ -105,6 +105,7 @@
 /*#define BSEP _BSEP*/
 /*#define BEND _BSTART*/
 
+#define SYM_BLUETOOTH       "\uE00B"
 #define SYM_ARCH            "\uE0A1"
 #define SYM_ARROW_UP        "\uE060"
 #define SYM_ARROW_DOWN      "\uE061"
@@ -826,11 +827,21 @@ void add_volume(char *status) {
             /* Error connecting */
             pulse_deinit(&pulse);
             pulseready = 0;
-        } else if (vol == -1) {
-            strcat(status, COL_DESC SYM_SPEAKER_MUTE COL_NORMAL);
         } else {
-            strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL);
-            sprintf(status + strlen(status), "% 3d" COL_UNIT "%%" COL_NORMAL, vol);
+
+            if (strncmp(pulse.default_sink, "bluez", 5) == 0) {
+                strcat(status, COL_IP);
+            } else {
+                strcat(status, "\x1b[38;5;235m");
+            }
+            strcat(status, SYM_BLUETOOTH);
+
+            if (vol == -1) {
+                strcat(status, COL_DESC SYM_SPEAKER_MUTE COL_NORMAL);
+            } else {
+                strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL);
+                sprintf(status + strlen(status), "% 3d" COL_UNIT "%%" COL_NORMAL, vol);
+            }
         }
     } else {
         strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL);
