@@ -29,22 +29,42 @@
 
 #include <sys/utsname.h>
 
+#include <math.h>
+#include <ctype.h>
 #include <sys/socket.h>
 #include <linux/socket.h>
 #include <linux/un.h>
+
+#ifndef NO_WIRELESS
 #include <linux/wireless.h>
 #include <linux/if.h>
 #include <iwlib.h>
+#endif
 
+#ifndef NO_MPD
 #include <mpd/client.h>
+#endif
 
+#ifndef NO_PULSE
 #define _GNU_SOURCE
 #include <pulse/pulseaudio.h>
+#endif
 
+#ifndef WIRELESS_DEV
 #define WIRELESS_DEV "wlp2s0"
+#endif
+
+#ifndef WIRED_DEV
 #define WIRED_DEV "enp10s0"
+#endif
+
+#ifndef BONDED_DEV
 #define BONDED_DEV "bond0"
+#endif
+
+#ifndef DROPBOX_SOCKET
 #define DROPBOX_SOCKET "/home/jeffrey/.dropbox/command_socket" /* Set to NULL to "remove" dropbox reporting */
+#endif
 
 #define COLOR_NORMAL 0
 #define COLOR_CRITICAL 5
@@ -162,6 +182,7 @@ struct Temperature {
 };
 
 // BEGIN PULSE
+#ifndef NO_PULSE
 
 #define UNUSED __attribute__((unused))
 
@@ -257,6 +278,7 @@ static void pulse_deinit(struct pulseaudio_t *pulse)
 }
 
 // END PULSE
+#endif // #ifndef NO_PULSE
 
 void setstatus(char *str) {
     XStoreName(dpy, DefaultRootWindow(dpy), str);
@@ -351,6 +373,7 @@ pid_t pidof(const char* pname) {
     return -1;
 }
 
+#ifndef NO_WIRELESS
 int wireless_init() {
     int skfd;         /* generic raw socket desc. */
 
@@ -401,6 +424,7 @@ float getwireless_strength(int skfd) {
     }
     return 0;
 }
+#endif
 
 char *getip(const char *interface) {
     struct ifaddrs *ifaddr, *ifa;
@@ -715,18 +739,24 @@ void add_networking(char *status) {
     int wireless = 0;
     int bonded = 0;
 
+#ifndef NO_WIRELESS
     char essid[IW_ESSID_MAX_SIZE + 1];
     float wifi_qual;
     static int wifi_skfd;
+#endif
 
     if (status == NULL) {
+#ifndef NO_WIRELESS
         wireless_close(wifi_skfd);
+#endif
         first = 1;
         return;
     }
 
     if (first) {
+#ifndef NO_WIRELESS
         wifi_skfd = wireless_init();
+#endif
     }
 
     if (getwired()) {
@@ -735,9 +765,13 @@ void add_networking(char *status) {
     if (isbonded()) {
         bonded = 1;
     }
+#ifndef NO_WIRELESS
     if (!getwireless_essid(wifi_skfd, essid) && strlen(essid)) {
         wireless = 1;
     }
+#else
+    wireless = 0;
+#endif
 
     if (!wired && !wireless) {
         first = 0;
@@ -751,6 +785,7 @@ void add_networking(char *status) {
         strcat(status, " ");
     }
 
+#ifndef NO_WIRELESS
     if (wireless) {
         if (!bonded) {
             strcat(status, COL_DESC "WIFI " COL_NORMAL);
@@ -781,6 +816,7 @@ void add_networking(char *status) {
             strcat(status, COL_DESC SYM_NET_WIRED " " COL_NORMAL);
         }
     }
+#endif
 
     if (wired) {
         if (!bonded) {
@@ -798,6 +834,7 @@ void add_networking(char *status) {
 }
 
 void add_volume(char *status) {
+#ifndef NO_PULSE
     static struct pulseaudio_t pulse;
     static int pulseready = -1;
     int vol = -1;
@@ -865,6 +902,7 @@ void add_volume(char *status) {
         }
     }
     END(status);
+#endif
 }
 
 void add_screenlocker(char *status) {
@@ -1094,6 +1132,7 @@ void add_loadavg(char *status) {
 }
 
 void add_mpdsong(char *status) {
+#ifndef NO_MPD
 	static struct mpd_connection *conn = NULL;
     struct mpd_status *mpdstatus = NULL;
     enum mpd_state state;
@@ -1175,6 +1214,7 @@ void add_mpdsong(char *status) {
 
         }
     }
+#endif
 }
 
 void add_kernelinfo(char *status) {
