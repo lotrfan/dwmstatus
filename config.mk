@@ -43,6 +43,10 @@ else
 	LIBS += -liw
 endif
 
+ifdef NO_BATTERY
+	CFLAGS  += -DNO_BATTERY=1
+endif
+
 ifdef WIRELESS_DEV
 	CFLAGS  += -DWIRELESS_DEV="\"${WIRELESS_DEV}\""
 endif

@@ -548,6 +548,7 @@ int getfreqi(int cpu) {
     return freq;;
 }
 
+#ifndef NO_BATTERY
 struct BatteryInfo getbattery() {
     struct BatteryInfo info;
     int charge_now, charge_full, current;
@@ -588,6 +589,7 @@ struct BatteryInfo getbattery() {
 
     return info;
 }
+#endif
 
 int getram() {
     FILE *fd;
@@ -946,6 +948,7 @@ void add_ram(char *status) {
 }
 
 void add_battery(char *status) {
+#ifndef NO_BATTERY
     struct BatteryInfo battinfo = getbattery();
     const char *col = COL_NORMAL;
 
@@ -1036,6 +1039,7 @@ void add_battery(char *status) {
                 battinfo.hours, col, battinfo.minutes, col, battinfo.seconds);
     }
     END(status);
+#endif
 }
 
 void add_temperature(char *status) {
