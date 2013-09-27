@@ -1,5 +1,14 @@
 This is my dwmstatus "script", which I run on Arch Linux.
 
+Compilation
+    * Just run `make`.
+    You can also use some flags:
+        * NO_PULSE=1    => Turns off pulseaudio (volume) support
+        * NO_MPD=1      => Turns off MPD (current song) support
+        * NO_WIRELESS=1 => Turns off wireless support
+        Add them like so:
+        `make NO_PULSE=1 NO_WIRELESS=1 all`
+
 Some credits:
     * An old version of ponymix (https://github.com/falconindy/ponymix), upon which the pulseaudio code is (partially) based.
     * The guys at suckless.org. The early versions of this were based on their (example) dwmstatus, although the resemblance is small now.
