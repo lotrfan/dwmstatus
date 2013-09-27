@@ -125,6 +125,7 @@
 /*#define BSEP _BSEP*/
 /*#define BEND _BSTART*/
 
+#ifndef NO_SYMBOLS
 #define SYM_BLUETOOTH       "\uE00B"
 #define SYM_ARCH            "\uE0A1"
 #define SYM_ARROW_UP        "\uE060"
@@ -141,10 +142,29 @@
 #define SYM_PACMAN          "\uE00F" //"\uE00F" // or E0A0
 #define SYM_PACMAN_GHOST    "\uE0C8"
 #define SYM_PACMAN_FOOD     "\uE190"
+#define XAUTOLOCK "\uE027"
+#else
+#define SYM_BLUETOOTH       "B"
+#define SYM_ARCH            ""
+#define SYM_ARROW_UP        "U"
+#define SYM_ARROW_DOWN      "D"
+#define SYM_RAM             "RAM"
+#define SYM_AC_FULL         "F"
+#define SYM_AC              "C"
+#define SYM_SPEAKER         ""
+#define SYM_SPEAKER_MUTE    "[M]"
+#define SYM_MUSIC           ""
+#define SYM_MUSIC_PLAY      "[play]"
+#define SYM_MUSIC_PAUSE     "[pause]"
+#define SYM_NET_WIRED       "[wired]"
+#define SYM_PACMAN          "<" //"\uE00F" // or E0A0
+#define SYM_PACMAN_GHOST    "#"
+#define SYM_PACMAN_FOOD     "."
+#define XAUTOLOCK "[x]"
+#endif
 
 #define NET_UP SYM_ARROW_UP
 #define NET_DOWN SYM_ARROW_DOWN
-#define XAUTOLOCK "\uE027"
 
 #define STATUS_LEN 8192
 
