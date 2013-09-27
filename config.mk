@@ -42,3 +42,15 @@ ifdef NO_WIRELESS
 else
 	LIBS += -liw
 endif
+
+ifdef WIRELESS_DEV
+	CFLAGS  += -DWIRELESS_DEV="${WIRELESS_DEV}"
+endif
+
+ifdef WIRED_DEV
+	CFLAGS  += -DWIRED_DEV="${WIRED_DEV}"
+endif
+
+ifdef BONDED_DEV
+	CFLAGS  += -DBONDED_DEV="${BONDED_DEV}"
+endif
