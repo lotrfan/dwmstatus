@@ -605,8 +605,12 @@ struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
     long int wired_rx, wired_tx, wireless_rx, wireless_tx;
     readfileli("/sys/class/net/" WIRED_DEV "/statistics/rx_bytes", &wired_rx);
     readfileli("/sys/class/net/" WIRED_DEV "/statistics/tx_bytes", &wired_tx);
+#ifndef NO_WIRELESS
     readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/rx_bytes", &wireless_rx);
     readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/tx_bytes", &wireless_tx);
+#else
+    wireless_rx = wireless_tx = 0;
+#endif
     last.wiredDown = (float)(wired_rx - last.wired_rx)/timediff;
     last.wiredUp = (float)(wired_tx - last.wired_tx)/timediff;
     last.wirelessDown = (float)(wireless_rx - last.wireless_rx)/timediff;
