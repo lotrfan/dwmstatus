@@ -169,10 +169,12 @@ struct NetSpeed {
     float wiredDown;
     long int wired_rx;
     long int wired_tx;
+#ifndef NO_WIRELESS
     float wirelessUp;
     float wirelessDown;
     long int wireless_rx;
     long int wireless_tx;
+#endif
 };
 
 struct Temperature {
@@ -602,23 +604,23 @@ int getram() {
 }
 
 struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
-    long int wired_rx, wired_tx, wireless_rx, wireless_tx;
-    readfileli("/sys/class/net/" WIRED_DEV "/statistics/rx_bytes", &wired_rx);
-    readfileli("/sys/class/net/" WIRED_DEV "/statistics/tx_bytes", &wired_tx);
+    long int rx, tx;
+    readfileli("/sys/class/net/" WIRED_DEV "/statistics/rx_bytes", &rx);
+    readfileli("/sys/class/net/" WIRED_DEV "/statistics/tx_bytes", &tx);
+    last.wiredDown = (float)(rx - last.wired_rx)/timediff;
+    last.wiredUp = (float)(tx - last.wired_tx)/timediff;
+    last.wired_rx = rx;
+    last.wired_tx = tx;
+
 #ifndef NO_WIRELESS
-    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/rx_bytes", &wireless_rx);
-    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/tx_bytes", &wireless_tx);
-#else
-    wireless_rx = wireless_tx = 0;
+    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/rx_bytes", &rx);
+    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/tx_bytes", &tx);
+    last.wirelessDown = (float)(rx - last.wireless_rx)/timediff;
+    last.wirelessUp = (float)(tx - last.wireless_tx)/timediff;
+    last.wireless_rx = rx;
+    last.wireless_tx = tx;
 #endif
-    last.wiredDown = (float)(wired_rx - last.wired_rx)/timediff;
-    last.wiredUp = (float)(wired_tx - last.wired_tx)/timediff;
-    last.wirelessDown = (float)(wireless_rx - last.wireless_rx)/timediff;
-    last.wirelessUp = (float)(wireless_tx - last.wireless_tx)/timediff;
-    last.wired_rx = wired_rx;
-    last.wired_tx = wired_tx;
-    last.wireless_rx = wireless_rx;
-    last.wireless_tx = wireless_tx;
+
     return last;
 }
 
