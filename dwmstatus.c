@@ -289,6 +289,7 @@ void readfilef(char* filename, float *var) {
     fd = fopen(filename, "r");
     if(fd == NULL) {
         fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        *var = -1;
         return;
     }
     fscanf(fd, "%f", var);
@@ -299,6 +300,7 @@ void readfileli(char* filename, long int *var) {
     fd = fopen(filename, "r");
     if(fd == NULL) {
         fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        *var = -1;
         return;
     }
     fscanf(fd, "%ld", var);
@@ -309,6 +311,7 @@ void readfilei(char* filename, int *var) {
     fd = fopen(filename, "r");
     if(fd == NULL) {
         fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        *var = -1;
         return;
     }
     fscanf(fd, "%d", var);
@@ -1033,6 +1036,7 @@ void add_temperature(char *status) {
     int color = 0;
     const char *col = COL_NORMAL;
     const int max_i = 3;
+    int found = 0;
     struct Temperature temp[max_i];
     for (int i = 1; i <= max_i; i ++) {
         temp[i-1] = gettemp(i);
@@ -1041,7 +1045,10 @@ void add_temperature(char *status) {
         } else if (temp[i-1].temp >= temp[i-1].warn) {
             if (color < 1) { color = 1; }
         }
+        if (temp[i-1].temp >= 0) { found ++; }
     }
+
+    if (!found) { return; }
 
     START(status);
     switch (color) {
