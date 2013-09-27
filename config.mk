@@ -12,7 +12,7 @@ MANPREFIX = ${PREFIX}/share/man
 
 # includes and libs
 INCS = -I. -I/usr/include
-LIBS = -L/usr/lib -lc -lX11 -liw -lm -lpulse -lmpdclient
+LIBS = -L/usr/lib -lc -lX11 -lm
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
@@ -22,3 +22,23 @@ LDFLAGS = ${DEBUGFLAGS} ${LIBS}
 # compiler and linker
 CC = cc
 
+
+# Conditional stuff
+
+ifdef NO_PULSE
+	CFLAGS  += -DNO_PULSE=1
+else
+	LIBS += -lpulse
+endif
+
+ifdef NO_MPD
+	CFLAGS  += -DNO_MPD=1
+else
+	LIBS += -lmpdclient
+endif
+
+ifdef NO_WIRELESS
+	CFLAGS  += -DNO_WIRELESS=1
+else
+	LIBS += -liw
+endif
