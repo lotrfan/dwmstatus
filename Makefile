@@ -22,9 +22,6 @@ ${OBJ}: config.mk
 ${NAME}: ${OBJ}
 	@echo CC -o $@
 	@${CC} -o $@ ${OBJ} ${LDFLAGS}
-	@echo cp $@ ${HOME}/bin/
-	@killall -q $@ || true
-	@cp $@ ${HOME}/bin/
 
 clean:
 	@echo cleaning
@@ -44,6 +41,11 @@ install: all
 	@mkdir -p ${DESTDIR}${PREFIX}/bin
 	@cp -f ${NAME} ${DESTDIR}${PREFIX}/bin
 	@chmod 755 ${DESTDIR}${PREFIX}/bin/${NAME}
+
+custom_install: all
+	@echo cp ${NAME} ${HOME}/bin/
+	@killall -q ${NAME} || true
+	@cp ${NAME} ${HOME}/bin/
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
