@@ -909,6 +909,7 @@ void add_volume(char *status) {
             } else {
                 strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL);
                 sprintf(status + strlen(status), "% 3d" COL_UNIT "%%" COL_NORMAL, vol);
+                sprintf(status + strlen(status),  COL_UNIT "\x1b{1;%.2fm" COL_NORMAL, (float)vol/100.);
             }
         }
     } else {
@@ -1242,6 +1243,8 @@ void add_mpdsong(char *status) {
                         mpd_status_get_elapsed_time(mpdstatus) % 60,
                         mpd_status_get_total_time(mpdstatus) / 60,
                         mpd_status_get_total_time(mpdstatus) % 60);
+
+                sprintf(status + strlen(status), "\x1b[38;5;083m" "\x1b{0;%.2fm" COL_NORMAL, (float)mpd_status_get_elapsed_time(mpdstatus)/mpd_status_get_total_time(mpdstatus) );
 
                 END(status);
             }
