@@ -1176,6 +1176,7 @@ void add_mpdsong(char *status) {
     enum mpd_state state;
     struct mpd_song *song;
     const char *title, *artist, *album;
+    int volume = -1;
 
     if (conn == NULL) {
         conn = mpd_connection_new(NULL, 0, 0);
@@ -1216,6 +1217,10 @@ void add_mpdsong(char *status) {
                     strcat(status, COL_DESC SYM_MUSIC_PLAY " " COL_NORMAL);
                 } else {
                     strcat(status, COL_DESC SYM_MUSIC_PAUSE " " COL_NORMAL);
+                }
+                volume = mpd_status_get_volume(mpdstatus);
+                if (volume >= 0) {
+                    sprintf(status + strlen(status), COL_DESC "[" "\x1b[38;5;147m" "%d%%\x1b{1;.%dm" COL_DESC "]" COL_NORMAL " ", volume, volume);
                 }
 
                 sprintf(status + strlen(status), COL_DESC "[" "\x1b[38;5;147m" "%i" COL_SEP "/" "\x1b[38;5;147m" "%u" COL_DESC "]" COL_NORMAL " ", mpd_status_get_song_pos(mpdstatus) + 1, mpd_status_get_queue_length(mpdstatus));
