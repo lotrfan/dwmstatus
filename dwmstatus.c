@@ -1317,19 +1317,21 @@ void add_dropbox(char *status) {
     static int sockfd;
     static int first = 1;
     static int adding = 0;
+    static char last_status[STATUS_LEN] = {0};
+    static int last_refresh = -1;
 
     if (DROPBOX_SOCKET != NULL) {
         if (first) {
             if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
                 perror("add_dropbox");
-                return;
+                goto dropbox_do_cat;
             }
             sock.sun_family = AF_UNIX;
             strcpy(sock.sun_path, DROPBOX_SOCKET);
             if (connect(sockfd, (struct sockaddr *)&sock, sizeof(sock)) == -1) {
                 perror("add_dropbox");
                 close(sockfd);
-                return;
+                goto dropbox_do_cat;
             }
 
             struct timeval tv;
@@ -1345,7 +1347,7 @@ void add_dropbox(char *status) {
             strcpy(buf, "get_dropbox_status\ndone\n");
             if (send(sockfd, buf, strlen(buf), 0) == -1) {
                 perror("add_dropbox");
-                return;
+                goto dropbox_do_cat;
             }
             int t;
             if ((t = recv(sockfd, buf, sizeof(buf), 0)) > 0) {
@@ -1356,13 +1358,14 @@ void add_dropbox(char *status) {
                     while (isspace(*tmp)) {
                         tmp++;
                     }
-                    START(status);
-                    strcat(status, COL_DESC "DROPBOX ");
+                    last_status[0] = '\0';
+                    START(last_status);
+                    strcat(last_status, COL_DESC "DROPBOX ");
                     if (strncmp(tmp, "done", strlen("done")) == 0) {
-                        strcat(status, COL_IP);
-                        strcat(status, "Idle");
+                        strcat(last_status, COL_IP);
+                        strcat(last_status, "Idle");
                     } else {
-                        strcat(status, "\x1b[38;5;039m");
+                        strcat(last_status, "\x1b[38;5;039m");
                         // They're ok...
                         char *idx = tmp;
                         int f = 1;
@@ -1374,10 +1377,10 @@ void add_dropbox(char *status) {
                             }
                             if (tab != NULL && (tab - idx)) {
                                 if (f > 1) {
-                                    strcat(status, " - ");
+                                    strcat(last_status, " - ");
                                 }
                                 f ++;
-                                strncat(status, idx, tab - idx);
+                                strncat(last_status, idx, tab - idx);
                                 idx = tab + 1;
                             } else {
                                 break;
@@ -1387,7 +1390,8 @@ void add_dropbox(char *status) {
                             }
                         }
                     }
-                    END(status);
+                    END(last_status);
+                    last_refresh = 0;
                     adding = 0; /* Reset on a successful run */
                 }
             } else {
@@ -1401,12 +1405,18 @@ void add_dropbox(char *status) {
                     add_dropbox(status);
                     adding = 0;
                 }
-                return;
+                goto dropbox_do_cat;
             }
 
         }
 
     }
+
+dropbox_do_cat:
+    if (last_refresh >= 0 && last_refresh <= 10) {
+        strcat(status, last_status);
+    }
+    last_refresh ++;
 }
 
 void add_pacman(char *status) {
