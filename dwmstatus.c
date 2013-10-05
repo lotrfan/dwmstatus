@@ -854,6 +854,8 @@ void add_networking(char *status) {
             strcat(status, COL_DESC "WIRED" COL_IP "/" COL_NORMAL);
             add_networking_ip(status, getip(WIRED_DEV));
             strcat(status, " " COL_NORMAL);
+        } else if (!wireless) {
+            strcat(status, COL_DESC SYM_NET_WIRED " " COL_NORMAL);
         }
         add_networking_speed(status, !first * netspeed.wiredDown, 0, 0);
         add_networking_speed(status, !first * netspeed.wiredUp, 1, 0);
