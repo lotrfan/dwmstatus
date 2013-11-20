@@ -720,7 +720,7 @@ void add_networking_speed(char * status, float speed, int up, int hideIfZero) {
     if (speed) {
         SEP(status);
         if (megabytes) {
-            sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-2.1f" COL_UNIT "M" COL_NORMAL, (up ? NET_UP : NET_DOWN), speed );
+            sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-4.1f" COL_UNIT "M" COL_NORMAL, (up ? NET_UP : NET_DOWN), speed );
         } else {
             sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-5.0f", (up ? NET_UP : NET_DOWN), speed );
         }
