@@ -55,7 +55,7 @@
 #endif
 
 #ifndef WIRED_DEV
-#define WIRED_DEV "enp10s0"
+#define WIRED_DEV "enp4s0"
 #endif
 
 #ifndef BONDED_DEV
