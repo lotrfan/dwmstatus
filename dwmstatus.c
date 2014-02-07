@@ -1473,7 +1473,7 @@ void add_pacman(char *status) {
 }
 
 int main(int argc, char * argv[]) {
-    char status[STATUS_LEN];
+    char status[STATUS_LEN] = {0};
     int runonce = 0;
 
     if (argc >= 2) {
