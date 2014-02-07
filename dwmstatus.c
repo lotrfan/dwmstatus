@@ -1196,6 +1196,10 @@ void add_mpdsong(char *status) {
     if (conn != NULL) {
         mpdstatus = mpd_run_status(conn);
         if (mpdstatus == NULL) {
+            if (mpd_connection_get_error(conn) != MPD_ERROR_SUCCESS) {
+                mpd_connection_free(conn);
+                conn = NULL;
+            }
             return;
         }
         state = mpd_status_get_state(mpdstatus);
