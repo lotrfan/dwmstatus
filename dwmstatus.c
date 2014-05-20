@@ -620,7 +620,12 @@ int getram() {
         fprintf(stderr, "Error opening %s: %s.\n", "/proc/meminfo", strerror(errno));
         return 0;
     }
-    fscanf(fd, "MemTotal: %li kB MemFree: %li kB MemAvailable: %*i kB Buffers: %li kB Cached: %li kB", &tot, &free, &buf, &cache);
+    if (4 != fscanf(fd, "MemTotal: %li kB MemFree: %li kB MemAvailable: %*i kB Buffers: %li kB Cached: %li kB", &tot, &free, &buf, &cache)) {
+        rewind(fd);
+        if (4 != fscanf(fd, "MemTotal: %li kB MemFree: %li kB Buffers: %li kB Cached: %li kB", &tot, &free, &buf, &cache)) {
+            tot = free = buf = cache = 0;
+        }
+    }
     fclose(fd);
     return (tot - free - buf - cache) / 1024;
 }
