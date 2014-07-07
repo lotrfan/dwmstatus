@@ -66,6 +66,11 @@
 #define DROPBOX_SOCKET "/home/jeffrey/.dropbox/command_socket" /* Set to NULL to "remove" dropbox reporting */
 #endif
 
+#ifndef TEMPERATURE_PATH
+/* Need to escape format specifiers */
+#define TEMPERATURE_PATH "/sys/devices/platform/coretemp.0"
+#endif
+
 #define COLOR_NORMAL 0
 #define COLOR_CRITICAL 5
 #define COLOR_WARNING 4
@@ -653,18 +658,18 @@ struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
 
 struct Temperature gettemp(int n) {
     struct Temperature ret;
-    char tmp[ strlen("/sys/devices/platform/coretemp.0/temp%d_crit_alarm") ];
+    char tmp[ strlen(TEMPERATURE_PATH "/temp%d_crit_alarm") ];
     int temperature;
 
-    sprintf(tmp, "/sys/devices/platform/coretemp.0/temp%d_input", n);
+    sprintf(tmp, TEMPERATURE_PATH "/temp%d_input", n);
     readfilei(tmp, &temperature);
     ret.temp = (float)temperature/1000;
 
-    sprintf(tmp, "/sys/devices/platform/coretemp.0/temp%d_max", n);
+    sprintf(tmp, TEMPERATURE_PATH "/temp%d_max", n);
     readfilei(tmp, &temperature);
     ret.warn = (float)temperature/1000;
 
-    sprintf(tmp, "/sys/devices/platform/coretemp.0/temp%d_crit", n);
+    sprintf(tmp, TEMPERATURE_PATH "/temp%d_crit", n);
     readfilei(tmp, &temperature);
     ret.crit = (float)temperature/1000;
 
