@@ -68,7 +68,7 @@
 
 #ifndef TEMPERATURE_PATH
 /* Need to escape format specifiers */
-#define TEMPERATURE_PATH "/sys/devices/platform/coretemp.0"
+#define TEMPERATURE_PATH "/sys/devices/platform/coretemp.0/hwmon/hwmon0"
 #endif
 
 #define COLOR_NORMAL 0
