@@ -898,7 +898,10 @@ void add_networking(char *status) {
 
 #ifdef VPN_DEV
     if (isvpn()) {
-        strcat(status, COL_SEP COL_DESC "VPN" COL_IP "/" COL_NORMAL);
+        if (wired || wireless || bonded) {
+            strcat(status, " ");
+        }
+        strcat(status, COL_DESC "VPN" COL_IP "/" COL_NORMAL);
         add_networking_ip(status, getip(VPN_DEV));
         strcat(status, " " COL_NORMAL);
         add_networking_speed(status, !first * netspeed_vpn.down, 0, 0);
