@@ -62,6 +62,10 @@
 #define BONDED_DEV "bond0"
 #endif
 
+#ifndef VPN_DEV
+#define VPN_DEV "ppp0"
+#endif
+
 #ifndef DROPBOX_SOCKET
 #define DROPBOX_SOCKET "/home/jeffrey/.dropbox/command_socket" /* Set to NULL to "remove" dropbox reporting */
 #endif
@@ -190,16 +194,10 @@ struct BatteryInfo {
 };
 
 struct NetSpeed {
-    float wiredUp;
-    float wiredDown;
-    long int wired_rx;
-    long int wired_tx;
-#ifndef NO_WIRELESS
-    float wirelessUp;
-    float wirelessDown;
-    long int wireless_rx;
-    long int wireless_tx;
-#endif
+    float up;
+    float down;
+    long int rx;
+    long int tx;
 };
 
 struct Temperature {
@@ -520,6 +518,17 @@ int isbonded() {
     fclose(fd);
     return 1;
 }
+#ifdef VPN_DEV
+int isvpn() {
+    FILE *fd;
+    fd = fopen("/sys/class/net/" VPN_DEV "/carrier", "r");
+    if(fd == NULL) {
+        return 0;
+    }
+    fclose(fd);
+    return 1;
+}
+#endif
 
 /*
  * Returns in MHz
@@ -635,23 +644,18 @@ int getram() {
     return (tot - free - buf - cache) / 1024;
 }
 
-struct NetSpeed getnetspeed(struct NetSpeed last, float timediff) {
-    long int rx, tx;
-    readfileli("/sys/class/net/" WIRED_DEV "/statistics/rx_bytes", &rx);
-    readfileli("/sys/class/net/" WIRED_DEV "/statistics/tx_bytes", &tx);
-    last.wiredDown = (float)(rx - last.wired_rx)/timediff;
-    last.wiredUp = (float)(tx - last.wired_tx)/timediff;
-    last.wired_rx = rx;
-    last.wired_tx = tx;
+struct NetSpeed getnetspeed(struct NetSpeed last, char *device, float timediff) {
+    long int read;
+    static char path[60];
+    snprintf(path, 60, "/sys/class/net/%s/statistics/rx_bytes", device);
+    readfileli(path, &read);
+    last.down = (float)(read - last.rx)/timediff;
+    last.rx = read;
 
-#ifndef NO_WIRELESS
-    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/rx_bytes", &rx);
-    readfileli("/sys/class/net/" WIRELESS_DEV "/statistics/tx_bytes", &tx);
-    last.wirelessDown = (float)(rx - last.wireless_rx)/timediff;
-    last.wirelessUp = (float)(tx - last.wireless_tx)/timediff;
-    last.wireless_rx = rx;
-    last.wireless_tx = tx;
-#endif
+    snprintf(path, 60, "/sys/class/net/%s/statistics/tx_bytes", device);
+    readfileli(path, &read);
+    last.up = (float)(read - last.tx)/timediff;
+    last.tx = read;
 
     return last;
 }
@@ -772,9 +776,22 @@ char *add_networking_ip(char *status, char *ip) {
     return ip;
 }
 void add_networking(char *status) {
-    static struct NetSpeed netspeed;
-    netspeed = getnetspeed(netspeed, SLEEP_TIME);
+    static struct NetSpeed netspeed_wired;
+#ifndef NO_WIRELESS
+    static struct NetSpeed netspeed_wireless;
+#endif
+#ifdef VPN_DEV
+    static struct NetSpeed netspeed_vpn;
+#endif
     static int first = 1;
+
+    netspeed_wired = getnetspeed(netspeed_wired, WIRED_DEV, SLEEP_TIME);
+#ifndef NO_WIRELESS
+    netspeed_wireless = getnetspeed(netspeed_wireless, WIRELESS_DEV, SLEEP_TIME);
+#endif
+#ifdef VPN_DEV
+    netspeed_vpn = getnetspeed(netspeed_vpn, VPN_DEV, SLEEP_TIME);
+#endif
 
     int wired = 0;
     int wireless = 0;
@@ -845,8 +862,8 @@ void add_networking(char *status) {
             strcat(status, COL_IP "/" COL_NORMAL);
             add_networking_ip(status, getip(WIRELESS_DEV));
         }
-        add_networking_speed(status, !first * netspeed.wirelessDown, 0, (bonded && wired));
-        add_networking_speed(status, !first * netspeed.wirelessUp, 1, (bonded && wired));
+        add_networking_speed(status, !first * netspeed_wireless.down, 0, (bonded && wired));
+        add_networking_speed(status, !first * netspeed_wireless.up, 1, (bonded && wired));
         if (bonded && wired) {
             // Only need a sep (bonded, both are connected
             strcat(status, " ");
@@ -867,9 +884,19 @@ void add_networking(char *status) {
         } else if (!wireless) {
             strcat(status, COL_DESC SYM_NET_WIRED " " COL_NORMAL);
         }
-        add_networking_speed(status, !first * netspeed.wiredDown, 0, 0);
-        add_networking_speed(status, !first * netspeed.wiredUp, 1, 0);
+        add_networking_speed(status, !first * netspeed_wired.down, 0, 0);
+        add_networking_speed(status, !first * netspeed_wired.up, 1, 0);
     }
+
+#ifdef VPN_DEV
+    if (isvpn()) {
+        strcat(status, COL_SEP COL_DESC "VPN" COL_IP "/" COL_NORMAL);
+        add_networking_ip(status, getip(VPN_DEV));
+        strcat(status, " " COL_NORMAL);
+        add_networking_speed(status, !first * netspeed_vpn.down, 0, 0);
+        add_networking_speed(status, !first * netspeed_vpn.up, 1, 0);
+    }
+#endif
 
     END(status);
 
