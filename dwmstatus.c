@@ -1355,6 +1355,7 @@ void add_uptime(char *status) {
     }
 }
 
+#ifdef DROPBOX_SOCKET
 void add_dropbox(char *status) {
     static struct sockaddr_un sock;
     static int sockfd;
@@ -1461,6 +1462,7 @@ dropbox_do_cat:
     }
     last_refresh ++;
 }
+#endif
 
 void add_pacman(char *status) {
     static int pac_toggle = 0, flip = 0;
@@ -1552,7 +1554,9 @@ int main(int argc, char * argv[]) {
         add_kernelinfo(status);
         add_uptime(status);
         add_mpdsong(status);
+#ifdef DROPBOX_SOCKET
         add_dropbox(status);
+#endif
 
         if (runonce) {
             break;
