@@ -720,11 +720,15 @@ void add_end(char *status) {
 }
 
 void add_networking_speed(char * status, float speed, int up, int hideIfZero) {
-    int megabytes = 0;
-    speed /= 1024;
+    char unit = 0;
     if (speed >= 1024) {
         speed /= 1024;
-        megabytes = 1;
+        if (speed >= 1024) {
+            speed /= 1024;
+            unit = 'M';
+        }
+    } else {
+        unit = 'B';
     }
     if (speed >= 1000) {
         speed = truncf(speed);
@@ -733,8 +737,12 @@ void add_networking_speed(char * status, float speed, int up, int hideIfZero) {
     }
     if (speed) {
         SEP(status);
-        if (megabytes) {
-            sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-4.1f" COL_UNIT "M" COL_NORMAL, (up ? NET_UP : NET_DOWN), speed );
+        if (unit) {
+            if (unit == 'B') {
+                sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-4.0f" COL_UNIT "%c" COL_NORMAL, (up ? NET_UP : NET_DOWN), speed, unit );
+            } else {
+                sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-4.1f" COL_UNIT "%c" COL_NORMAL, (up ? NET_UP : NET_DOWN), speed, unit );
+            }
         } else {
             sprintf(status + strlen(status), COL_DESC "%s" COL_NORMAL "%-5.0f", (up ? NET_UP : NET_DOWN), speed );
         }
