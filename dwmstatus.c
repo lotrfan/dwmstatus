@@ -804,7 +804,9 @@ void add_networking(char *status) {
     netspeed_wireless = getnetspeed(netspeed_wireless, WIRELESS_DEV, SLEEP_TIME);
 #endif
 #ifdef VPN_DEV
-    netspeed_vpn = getnetspeed(netspeed_vpn, VPN_DEV, SLEEP_TIME);
+    if (isvpn()) {
+        netspeed_vpn = getnetspeed(netspeed_vpn, VPN_DEV, SLEEP_TIME);
+    }
 #endif
 
     int wired = 0;
