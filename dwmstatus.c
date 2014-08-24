@@ -313,7 +313,9 @@ void readfilef(char* filename, float *var) {
     FILE *fd;
     fd = fopen(filename, "r");
     if(fd == NULL) {
-        fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        if (errno != ENOENT) {
+            fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        }
         *var = -1;
         return;
     }
@@ -324,7 +326,9 @@ void readfileli(char* filename, long int *var) {
     FILE *fd;
     fd = fopen(filename, "r");
     if(fd == NULL) {
-        fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        if (errno != ENOENT) {
+            fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        }
         *var = -1;
         return;
     }
@@ -335,7 +339,9 @@ void readfilei(char* filename, int *var) {
     FILE *fd;
     fd = fopen(filename, "r");
     if(fd == NULL) {
-        fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        if (errno != ENOENT) {
+            fprintf(stderr, "Error opening %s: %s.\n", filename, strerror(errno));
+        }
         *var = -1;
         return;
     }
@@ -1384,7 +1390,9 @@ void add_dropbox(char *status) {
             sock.sun_family = AF_UNIX;
             strcpy(sock.sun_path, DROPBOX_SOCKET);
             if (connect(sockfd, (struct sockaddr *)&sock, sizeof(sock)) == -1) {
-                perror("add_dropbox");
+                if (errno != ENOENT) {
+                    perror("add_dropbox");
+                }
                 close(sockfd);
                 goto dropbox_do_cat;
             }
