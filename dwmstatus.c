@@ -72,7 +72,7 @@
 
 #ifndef TEMPERATURE_PATH
 /* Need to escape format specifiers */
-#define TEMPERATURE_PATH "/sys/devices/platform/coretemp.0/hwmon/hwmon0"
+#define TEMPERATURE_PATH "/sys/devices/platform/coretemp.0/hwmon/hwmon2"
 #endif
 
 #define COLOR_NORMAL 0
@@ -924,7 +924,7 @@ void add_networking(char *status) {
 
 void add_volume(char *status) {
 #ifndef NO_PULSE
-    static struct pulseaudio_t pulse;
+    static struct pulseaudio_t pulse = {0};
     static int pulseready = -1;
     int vol = -1;
     if (status == NULL) {
