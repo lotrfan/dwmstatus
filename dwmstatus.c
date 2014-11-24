@@ -1553,7 +1553,7 @@ int main(int argc, char * argv[]) {
         }
     }
 
-    for ( ; ; usleep(SLEEP_TIME*1e6)) {
+    for ( ; ; usleep((unsigned long)(SLEEP_TIME*1e6))) {
 
         toggle = ! toggle;
         toggle3 = (toggle3 + 1) % 3;
