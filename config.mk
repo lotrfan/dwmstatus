@@ -3,8 +3,8 @@ VERSION = 1.1
 
 # Customize below to fit your system
 
-DEBUGFLAGS=
-#DEBUGFLAGS=-g
+#DEBUGFLAGS=
+DEBUGFLAGS=-g
 
 # paths
 PREFIX = /usr/local
