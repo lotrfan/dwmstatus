@@ -16,7 +16,7 @@ LIBS = -L/usr/lib -lc -lX11 -lm
 
 # flags
 CPPFLAGS = -DVERSION=\"${VERSION}\"
-CFLAGS = ${DEBUGFLAGS} -std=c99 -pedantic -Wall -O0 ${INCS} ${CPPFLAGS}
+CFLAGS = ${DEBUGFLAGS} -std=c99 -pedantic -Wall -Wextra -O0 ${INCS} ${CPPFLAGS}
 LDFLAGS = ${DEBUGFLAGS} ${LIBS}
 
 # compiler and linker
