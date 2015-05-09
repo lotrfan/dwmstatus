@@ -135,23 +135,23 @@
 /*#define BEND _BSTART*/
 
 #ifndef NO_SYMBOLS
-#define SYM_BLUETOOTH       "\uE00B"
-#define SYM_ARCH            "\uE0A1"
-#define SYM_ARROW_UP        "\uE060"
-#define SYM_ARROW_DOWN      "\uE061"
-#define SYM_RAM             "\uE021"
+#define SYM_BLUETOOTH       "ᛒ"
+#define SYM_ARCH            "\uf17c"
+#define SYM_ARROW_UP        "\uf0d8"
+#define SYM_ARROW_DOWN      "\uf0d7"
+#define SYM_RAM             "\uf008"
 #define SYM_AC_FULL         "\uE041"
-#define SYM_AC              "\uE040"
-#define SYM_SPEAKER         "\uE04E"
-#define SYM_SPEAKER_MUTE    "\uE04F"
+#define SYM_AC              "\uf1e6"
+#define SYM_SPEAKER         "\uf028"
+#define SYM_SPEAKER_MUTE    "\uf026"
 #define SYM_MUSIC           "\uE05C"
-#define SYM_MUSIC_PLAY      "\uE09A"
-#define SYM_MUSIC_PAUSE     "\uE09B"
-#define SYM_NET_WIRED       "\uE19C"
+#define SYM_MUSIC_PLAY      "\uf04b"
+#define SYM_MUSIC_PAUSE     "\uf04c"
+#define SYM_NET_WIRED       "\uf0e8" // \uf0c1 \uf157 
 #define SYM_PACMAN          "\uE00F" //"\uE00F" // or E0A0
 #define SYM_PACMAN_GHOST    "\uE0C8"
 #define SYM_PACMAN_FOOD     "\uE190"
-#define XAUTOLOCK "\uE027"
+#define XAUTOLOCK "\uf06e"
 #else
 #define SYM_BLUETOOTH       "B"
 #define SYM_ARCH            ""
