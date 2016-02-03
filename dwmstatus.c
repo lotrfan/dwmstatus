@@ -124,8 +124,9 @@
 #define START_WARN(status) add_start(status, COL_WARNING_BG(BG), COL_WARNING);
 #define START_CRIT(status) add_start(status, COL_CRITICAL_BG(BG), COL_CRITICAL);
 
-#define _BSTART "\x1b[38;5;49m:" COL_NORMAL
-#define _BEND   "\x1b[38;5;49m; " COL_NORMAL
+/* #define _BSTART "\x1b[38;5;49m:" COL_NORMAL */
+#define _BSTART COL_NORMAL 
+#define _BEND   "\x1b[38;5;49m | " COL_NORMAL
 #define _BSEP " "
 #define BSTART _BSTART
 #define BSEP _BSEP
@@ -490,7 +491,7 @@ char *getip(const char *interface) {
             /* For an AF_INET* interface address, display the address */
             s = getnameinfo(ifa->ifa_addr,
                     sizeof(struct sockaddr_in),
-                    host, 1025, NULL, 0, NI_NUMERICHOST); /* 1025 = NI_MAXHOST */
+                    host, 1025, NULL, 0, 1); /* 1025 = NI_MAXHOST, 1 = NI_NUMERICHOST */
             if (s != 0) {
                 return "";
             }
@@ -773,6 +774,9 @@ char *add_networking_ip(char *status, char *ip) {
         } else if (strncmp(ip, "10.10.1.", strlen("10.10.1.")) == 0) {
             strcat(status, COL_IP "10.." COL_NORMAL);
             strcat(status, ip + strlen("10.10.1."));
+        } else if (strncmp(ip, "10.100.1.", strlen("10.100.1.")) == 0) {
+            strcat(status, COL_IP "100.." COL_NORMAL);
+            strcat(status, ip + strlen("10.100.1."));
         } else {
             const char *ldot = rindex(ip, '.');
             if (ldot != NULL) {
@@ -957,16 +961,17 @@ void add_volume(char *status) {
 
             if (strncmp(pulse.default_sink, "bluez", 5) == 0) {
                 strcat(status, COL_IP);
+                strcat(status, SYM_BLUETOOTH);
             } else {
                 strcat(status, "\x1b[38;5;235m");
             }
-            strcat(status, SYM_BLUETOOTH);
 
             if (vol == -1) {
                 strcat(status, COL_DESC SYM_SPEAKER_MUTE COL_NORMAL);
             } else {
-                strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL);
-                sprintf(status + strlen(status), "% 3d" COL_UNIT "%%" COL_NORMAL, vol);
+                /* strcat(status, COL_DESC SYM_SPEAKER COL_NORMAL); */
+                strcat(status, COL_NORMAL);
+                sprintf(status + strlen(status), "%d" COL_UNIT "%%" COL_NORMAL, vol);
                 sprintf(status + strlen(status),  COL_UNIT "\x1b{1;%.2fm" COL_NORMAL, (float)vol/100.);
             }
         }
@@ -1007,7 +1012,7 @@ void add_screenlocker(char *status) {
 void add_ram(char *status) {
     int ram = getram();
     START(status);
-    strcat(status, COL_DESC SYM_RAM COL_NORMAL " ");
+    /* strcat(status, COL_DESC SYM_RAM COL_NORMAL " "); */
     if (ram > 7400) {
         switch (toggle) {
             case 0:
@@ -1192,7 +1197,9 @@ void add_datetime(char *status) {
     strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%S", resulttm);
     strcat(status, datetime);
 
-    END(status);
+    strcat(status, COL_RESET);
+
+    /* END(status); */
 }
 
 void add_cpufreq(char *status) {
@@ -1210,8 +1217,7 @@ void add_cpufreq(char *status) {
         count ++;
     } else {
         START(status);
-        strcat(status, COL_DESC "FREQ " COL_NORMAL);
-        sprintf(status + strlen(status), "%d", freqavg);
+        sprintf(status + strlen(status), COL_NORMAL "%4d" COL_UNIT "MHz", freqavg);
         END(status);
     }
 }
@@ -1222,8 +1228,7 @@ void add_loadavg(char *status) {
     }
 
     START(status);
-    strcat(status, COL_DESC "LOAD " COL_NORMAL);
-    sprintf(status + strlen(status), "%.2f %.2f", tmp[0], tmp[1]);
+    sprintf(status + strlen(status), COL_NORMAL "%.2f %.2f", tmp[0], tmp[1]);
     END(status);
 }
 
@@ -1563,7 +1568,7 @@ int main(int argc, char * argv[]) {
         add_networking(status);
         add_volume(status);
         add_ram(status);
-        add_screenlocker(status);
+        /* add_screenlocker(status); */
         add_battery(status);
         add_temperature(status);
         add_loadavg(status);
