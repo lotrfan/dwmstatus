@@ -126,7 +126,7 @@
 
 /* #define _BSTART "\x1b[38;5;49m:" COL_NORMAL */
 #define _BSTART COL_NORMAL 
-#define _BEND   "\x1b[38;5;49m | " COL_NORMAL
+#define _BEND   "\x1b[38;5;49m  " COL_NORMAL
 #define _BSEP " "
 #define BSTART _BSTART
 #define BSEP _BSEP
@@ -1037,7 +1037,6 @@ void add_battery(char *status) {
     const char *col = COL_NORMAL;
 
     START(status);
-    strcat(status, COL_DESC "BAT" COL_NORMAL);
     if (battinfo.percent > 90) {
         col = "\x1b[38;5;046m";
     } else if (battinfo.percent > 80) {
@@ -1084,7 +1083,6 @@ void add_battery(char *status) {
 
     // When charging, display that symbol; when fully charged, and plugged in, display that symbol (never both at the same time)
     if (battinfo.status == BattCharging) {
-        strcat(status, " ");
         strcat(status, col);
         /*static const char *chars[] = {".  ", "|  ", "|. ", "|| ", "||.", "|||"};*/
         /*static const char *chars[] = {".  ", ".. ", "...", "..|", ".||", "|||"};*/
@@ -1111,10 +1109,9 @@ void add_battery(char *status) {
         }
     } else if (battinfo.ac) {
         strcat(status, col);
-        strcat(status, " |||");
+        strcat(status, "|||");
     }
     if (!battinfo.ac || battinfo.status == BattCharging) {
-        strcat(status, " ");
         sprintf(status + strlen(status),
                 "%s%i" COL_UNIT "%%%s"
                 " "
@@ -1157,13 +1154,12 @@ void add_temperature(char *status) {
             break;
     }
 
+    float max_temp = temp[0].temp;
     for (int i = 0; i < max_i; i ++) {
-        if ((i - 1) >= 0) {
-            strcat(status, " ");
-        }
-
-        sprintf(status + strlen(status), "%s%.0f" COL_UNIT "C%s", col, temp[i].temp, col);
+        if (temp[i].temp > max_temp) max_temp = temp[i].temp;
     }
+
+    sprintf(status + strlen(status), "%s%.0f" COL_UNIT "C%s", col, max_temp, col);
 
     END(status);
 }
@@ -1181,10 +1177,10 @@ void add_datetime(char *status) {
     START(status);
 
     strcat(status, COL_IP);
-    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%b %d", resulttm);
+    strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%b %-d", resulttm);
     strcat(status, datetime);
 
-    strcat(status, COL_SEP " | " COL_NORMAL);
+    strcat(status, " " COL_NORMAL);
 
     strftime(datetime, sizeof(datetime)/sizeof(datetime[0])-1, "%H", resulttm);
     strcat(status, datetime);
