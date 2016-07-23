@@ -184,7 +184,7 @@ static Display *dpy;
 
 int toggle = 0, toggle3 = 0;
 
-enum {BattFull, BattCharging, BattDischarging};
+enum {BattFull, BattCharging, BattDischarging, BattUnknown};
 struct BatteryInfo {
     int percent;
     int ac;
@@ -616,11 +616,9 @@ struct BatteryInfo getbattery() {
         info.percent = 100;
         return info;
     } else {
-        fprintf(stderr,"Unknown battery status: %s\n", status);
-        // Not sure what's happening
-        return info;
+        info.status = BattUnknown;
+        info.seconds = 0;
     }
-
 
     info.percent = ((float)charge_now) / ((float)charge_full) * (float)100;
 
@@ -1107,6 +1105,9 @@ void add_battery(char *status) {
                 strcat(status, chars[5]);
                 break;
         }
+    } else if (battinfo.status == BattUnknown) {
+        strcat(status, col);
+        strcat(status, "??? ");
     } else if (battinfo.ac) {
         strcat(status, col);
         strcat(status, "|||");
@@ -1114,10 +1115,12 @@ void add_battery(char *status) {
     if (!battinfo.ac || battinfo.status == BattCharging) {
         sprintf(status + strlen(status),
                 "%s%i" COL_UNIT "%%%s"
-                " "
-                "%02d" COL_SEP ":%s%02d" COL_SEP ":%s%02d"
-                , col, battinfo.percent, col,
-                battinfo.hours, col, battinfo.minutes, col, battinfo.seconds);
+                , col, battinfo.percent, col);
+        if (battinfo.status != BattUnknown) {
+            sprintf(status + strlen(status),
+                    " " "%02d" COL_SEP ":%s%02d" COL_SEP ":%s%02d",
+                    battinfo.hours, col, battinfo.minutes, col, battinfo.seconds);
+        }
     }
     END(status);
 #endif
